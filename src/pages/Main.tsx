@@ -9,7 +9,7 @@ function Main() {
         leftButtons: (
           <>
             <NavbarLinkButton path="/requests">Заявки</NavbarLinkButton>
-            <NavbarLinkButton path="/groups">Группы</NavbarLinkButton>
+            <NavbarLinkButton path="/export">Экспорт заявок</NavbarLinkButton>
             <NavbarLinkButton path="/create-request">Создать заявку</NavbarLinkButton>
           </>
         ),
