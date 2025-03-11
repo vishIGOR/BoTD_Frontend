@@ -1,12 +1,12 @@
 import React from 'react';
-import { Form, Input, Button, message } from 'antd';
+import { Form, Input, Button, Select, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import PageSceleton from '../components/PageSceleton';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
 
-  const onFinish = (values: { username: string; password: string }) => {
+  const onFinish = (values: { login: string; name: string; password: string; role: string }) => {
     console.log('Received values:', values);
     message.success('Регистрация прошла успешно!');
     navigate('/login');
@@ -24,8 +24,16 @@ const Register: React.FC = () => {
           <Form onFinish={onFinish}>
             <Form.Item
               label="Логин"
-              name="username"
+              name="login"
               rules={[{ required: true, message: 'Пожалуйста, введите логин!' }]}
+            >
+              <Input />
+            </Form.Item>
+
+            <Form.Item
+              label="ФИО"
+              name="name"
+              rules={[{ required: true, message: 'Пожалуйста, введите ФИО!' }]}
             >
               <Input />
             </Form.Item>
@@ -36,6 +44,18 @@ const Register: React.FC = () => {
               rules={[{ required: true, message: 'Пожалуйста, введите пароль!' }]}
             >
               <Input.Password />
+            </Form.Item>
+
+            <Form.Item
+              label="Роль"
+              name="role"
+              rules={[{ required: true, message: 'Пожалуйста, выберите роль!' }]}
+            >
+              <Select>
+                <Select.Option value="student">Студент</Select.Option>
+                <Select.Option value="teacher">Преподаватель</Select.Option>
+                <Select.Option value="admin">Администратор</Select.Option>
+              </Select>
             </Form.Item>
 
             <Form.Item>
