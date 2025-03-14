@@ -6,7 +6,7 @@ import CreateRequestPage from "./pages/CreateRequestPage.tsx";
 import LoginPage from "./pages/Login.tsx";
 import RegisterPage from "./pages/Register.tsx";
 import "./index.css";
-import 'antd/dist/reset.css';
+import "antd/dist/reset.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

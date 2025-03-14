@@ -1,15 +1,15 @@
-import React from 'react';
-import { Form, Input, Button, Select, message } from 'antd';
-import { useNavigate } from 'react-router-dom';
-import PageSceleton from '../components/PageSceleton';
+import React from "react";
+import { Form, Input, Button, Select, message } from "antd";
+import { useNavigate } from "react-router-dom";
+import PageSceleton from "../components/PageSceleton";
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
 
   const onFinish = (values: { login: string; name: string; password: string; role: string }) => {
-    console.log('Received values:', values);
-    message.success('Регистрация прошла успешно!');
-    navigate('/login');
+    console.log("Received values:", values);
+    message.success("Регистрация прошла успешно!");
+    navigate("/login");
   };
 
   return (
@@ -19,13 +19,13 @@ const Register: React.FC = () => {
         rightButtons: <></>,
       }}
       contentProps={{
-        breadcrumbItems: [{ title: 'Регистрация' }],
+        breadcrumbItems: [{ title: "Регистрация" }],
         children: (
           <Form onFinish={onFinish}>
             <Form.Item
               label="Логин"
               name="login"
-              rules={[{ required: true, message: 'Пожалуйста, введите логин!' }]}
+              rules={[{ required: true, message: "Пожалуйста, введите логин!" }]}
             >
               <Input />
             </Form.Item>
@@ -33,7 +33,7 @@ const Register: React.FC = () => {
             <Form.Item
               label="ФИО"
               name="name"
-              rules={[{ required: true, message: 'Пожалуйста, введите ФИО!' }]}
+              rules={[{ required: true, message: "Пожалуйста, введите ФИО!" }]}
             >
               <Input />
             </Form.Item>
@@ -41,7 +41,7 @@ const Register: React.FC = () => {
             <Form.Item
               label="Пароль"
               name="password"
-              rules={[{ required: true, message: 'Пожалуйста, введите пароль!' }]}
+              rules={[{ required: true, message: "Пожалуйста, введите пароль!" }]}
             >
               <Input.Password />
             </Form.Item>
@@ -49,7 +49,7 @@ const Register: React.FC = () => {
             <Form.Item
               label="Роль"
               name="role"
-              rules={[{ required: true, message: 'Пожалуйста, выберите роль!' }]}
+              rules={[{ required: true, message: "Пожалуйста, выберите роль!" }]}
             >
               <Select>
                 <Select.Option value="student">Студент</Select.Option>

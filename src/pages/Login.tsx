@@ -1,15 +1,15 @@
-import React from 'react';
-import { Form, Input, Button, message } from 'antd';
-import { useNavigate } from 'react-router-dom';
-import PageSceleton from '../components/PageSceleton';
+import React from "react";
+import { Form, Input, Button, message } from "antd";
+import { useNavigate } from "react-router-dom";
+import PageSceleton from "../components/PageSceleton";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
 
   const onFinish = (values: { username: string; password: string }) => {
-    console.log('Received values:', values);
-    message.success('Вход выполнен успешно!');
-    navigate('/');
+    console.log("Received values:", values);
+    message.success("Вход выполнен успешно!");
+    navigate("/");
   };
 
   return (
@@ -19,13 +19,13 @@ const Login: React.FC = () => {
         rightButtons: <></>,
       }}
       contentProps={{
-        breadcrumbItems: [{ title: 'Вход' }],
+        breadcrumbItems: [{ title: "Вход" }],
         children: (
           <Form onFinish={onFinish}>
             <Form.Item
               label="Логин"
               name="username"
-              rules={[{ required: true, message: 'Пожалуйста, введите логин!' }]}
+              rules={[{ required: true, message: "Пожалуйста, введите логин!" }]}
             >
               <Input />
             </Form.Item>
@@ -33,7 +33,7 @@ const Login: React.FC = () => {
             <Form.Item
               label="Пароль"
               name="password"
-              rules={[{ required: true, message: 'Пожалуйста, введите пароль!' }]}
+              rules={[{ required: true, message: "Пожалуйста, введите пароль!" }]}
             >
               <Input.Password />
             </Form.Item>

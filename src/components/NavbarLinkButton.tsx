@@ -1,5 +1,5 @@
-import { ReactElement } from 'react';
-import { Link } from 'react-router-dom';
+import { ReactElement } from "react";
+import { Link } from "react-router-dom";
 
 export default function NavbarLinkButton({
   path,
@@ -9,7 +9,7 @@ export default function NavbarLinkButton({
   children: React.ReactNode;
 }): ReactElement {
   return (
-    <Link to={path} style={{ color: 'white', textDecoration: 'none' }}>
+    <Link to={path} style={{ color: "white", textDecoration: "none" }}>
       {children}
     </Link>
   );
