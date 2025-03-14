@@ -10,7 +10,6 @@ function Main() {
           <>
             <NavbarLinkButton path="/requests">Заявки</NavbarLinkButton>
             <NavbarLinkButton path="/export">Экспорт заявок</NavbarLinkButton>
-            <NavbarLinkButton path="/create-request">Создать заявку</NavbarLinkButton>
           </>
         ),
         rightButtons: (
@@ -24,9 +23,7 @@ function Main() {
         breadcrumbItems: [{ title: "Главная" }],
         children: (
           <>
-            <h1>Добро пожаловать!</h1>
-            <p>Это главная страница системы учёта пропусков ТГУ.</p>
-            <RequestList /> {/* Список заявок */}
+            <RequestList />
           </>
         ),
       }}
