@@ -1,10 +1,10 @@
 import NavbarLinkButton from "../components/NavbarLinkButton";
-import PageSceleton from "../components/PageSceleton";
+import MainPageSceleton from "../components/MainPageSceleton";
 import RequestList from "../components/RequestList";
 
 function Main() {
   return (
-    <PageSceleton
+    <MainPageSceleton
       navbarProps={{
         leftButtons: (
           <>
