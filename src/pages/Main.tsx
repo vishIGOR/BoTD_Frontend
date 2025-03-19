@@ -10,6 +10,7 @@ function Main() {
           <>
             <NavbarLinkButton path="/requests">Заявки</NavbarLinkButton>
             <NavbarLinkButton path="/export">Экспорт заявок</NavbarLinkButton>
+            <NavbarLinkButton path="/users">Пользователи</NavbarLinkButton>
           </>
         ),
         rightButtons: (
