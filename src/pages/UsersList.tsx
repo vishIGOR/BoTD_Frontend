@@ -54,7 +54,7 @@ const UsersAndGroups = () => {
   const fetchUsers = async () => {
     setLoadingUsers(true);
     try {
-      const response = await axios.get("https://api.example.com/users", {
+      const response = await axios.get("http://51.250.40.237/users", {
         headers: { Authorization: `Bearer ${token}` },
         params: {
           name: searchName || undefined,
@@ -74,7 +74,7 @@ const UsersAndGroups = () => {
   const updateUserRole = async (id: string, newRole: "STUDENT" | "TEACHER") => {
     try {
       await axios.patch(
-        `https://api.example.com/users/${id}`,
+        `http://51.250.40.237/users${id}`,
         { role: newRole },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -94,7 +94,7 @@ const UsersAndGroups = () => {
   const fetchGroups = async () => {
     setLoadingGroups(true);
     try {
-      const response = await axios.get("https://api.example.com/groups", {
+      const response = await axios.get("http://51.250.40.237/groups", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setGroups(response.data);
@@ -113,7 +113,7 @@ const UsersAndGroups = () => {
     }
     try {
       await axios.post(
-        "https://api.example.com/groups",
+        "http://51.250.40.237/groups",
         { number: parseInt(newGroupNumber), students: [] },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -128,7 +128,7 @@ const UsersAndGroups = () => {
 
   const deleteGroup = async (id: string) => {
     try {
-      await axios.delete(`https://api.example.com/groups/${id}`, {
+      await axios.delete(`http://51.250.40.237/groups/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       message.success("Группа удалена!");
