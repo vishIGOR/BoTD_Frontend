@@ -1,5 +1,6 @@
 import { DatePicker, Input, Select } from "antd";
 import { memo } from "react";
+import { Status } from "../models/Request";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -10,10 +11,10 @@ export const RequestFilters = memo(function RequestFilters({
   onSearchNameChange,
   onDateFilterChange,
 }: {
-  onStatusFilterChange: (value: string | null) => void;
+  onStatusFilterChange: (value: Status | null) => void;
   onGroupFilterChange: (value: string | null) => void;
   onSearchNameChange: (value: string) => void;
-  onDateFilterChange: (dates: [string, string] | null) => void;
+  onDateFilterChange: (dates: [Date | null, Date | null] | null) => void;
 }) {
   return (
     <div
@@ -34,9 +35,9 @@ export const RequestFilters = memo(function RequestFilters({
         style={{ width: "100%" }}
         size="large"
       >
-        <Option value="На проверке">На проверке</Option>
-        <Option value="Одобрено">Одобрено</Option>
-        <Option value="Отклонено">Отклонено</Option>
+        <Option value="PENDING">На проверке</Option>
+        <Option value="APPROVED">Одобрено</Option>
+        <Option value="DECLINDE">Отклонено</Option>
       </Select>
       <Select
         placeholder="Фильтр по группе"
@@ -44,8 +45,7 @@ export const RequestFilters = memo(function RequestFilters({
         allowClear
         style={{ width: "100%" }}
         size="large"
-      >
-      </Select>
+      ></Select>
       <Input
         placeholder="Поиск по ФИО"
         onChange={(e) => onSearchNameChange(e.target.value)}
@@ -53,12 +53,14 @@ export const RequestFilters = memo(function RequestFilters({
         size="large"
       />
       <RangePicker
+        allowEmpty={[true, true]}
+        placeholder={["Начало", "Конец"]}
         onChange={(dates) =>
           onDateFilterChange(
-          dates
-            ? [dates[0].format("YYYY-MM-DD"), dates[1].format("YYYY-MM-DD")]
-            : null
-        )
+            dates?.[0] || dates?.[1]
+              ? [dates[0]?.toDate() || null, dates[1]?.toDate() || null]
+              : null
+          )
         }
         style={{ width: "100%" }}
         size="large"

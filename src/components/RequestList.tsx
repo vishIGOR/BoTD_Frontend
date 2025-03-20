@@ -4,135 +4,53 @@ import {
   DeleteOutlined,
   EditOutlined,
 } from "@ant-design/icons";
-import {
-  Button,
-  Collapse,
-  DatePicker,
-  Input,
-  message,
-  Pagination,
-  Tag,
-} from "antd";
-import dayjs from "dayjs";
-import { useState } from "react";
+import { Button, Collapse, message, Pagination, Tag } from "antd";
+import { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
-import { Request } from "../models/Request";
+import { reasonToString, Request, statusToString } from "../models/Request";
+import { getRequests } from "../utils/requests";
 import ControlMenu from "./ControlMenu";
 import { RequestFilters } from "./RequestFilters";
 
 const { Panel } = Collapse;
 const PAGE_SIZE = 5;
 
-const initialRequests: Request[] = [
-  {
-    id: "101",
-    fullName: "Иван Иванов",
-    groupNumber: "Б01-123",
-    reason: "Болезнь",
-    date: "2024-03-01",
-    createdAt: "2024-02-25",
-    status: "На проверке",
-    document: "spravka.pdf",
-  },
-  {
-    id: "102",
-    fullName: "Мария Смирнова",
-    groupNumber: "Б02-456",
-    reason: "Семейные обстоятельства",
-    date: "2024-02-25",
-    createdAt: "2024-02-20",
-    status: "Одобрено",
-  },
-  {
-    id: "103",
-    fullName: "Алексей Кузнецов",
-    groupNumber: "Б03-789",
-    reason: "Командировка",
-    date: "2024-02-20",
-    createdAt: "2024-02-10",
-    status: "Отклонено",
-    document: "komandirovka.pdf",
-  },
-  {
-    id: "104",
-    fullName: "Анна Петрова",
-    groupNumber: "Б04-321",
-    reason: "Соревнования",
-    date: "2024-02-18",
-    createdAt: "2024-02-15",
-    status: "На проверке",
-  },
-  {
-    id: "105",
-    fullName: "Дмитрий Орлов",
-    groupNumber: "Б01-123",
-    reason: "Семинар",
-    date: "2024-02-28",
-    createdAt: "2024-02-22",
-    status: "Одобрено",
-    document: "seminar.pdf",
-  },
-  {
-    id: "106",
-    fullName: "Ольга Сидорова",
-    groupNumber: "Б02-456",
-    reason: "Семейные обстоятельства",
-    date: "2024-03-03",
-    createdAt: "2024-02-27",
-    status: "На проверке",
-  },
-  {
-    id: "107",
-    fullName: "Василий Козлов",
-    groupNumber: "Б03-789",
-    reason: "Спортивные сборы",
-    date: "2024-02-26",
-    createdAt: "2024-02-21",
-    status: "Отклонено",
-    document: "sports.pdf",
-  },
-  {
-    id: "108",
-    fullName: "Екатерина Белова",
-    groupNumber: "Б05-999",
-    reason: "Олимпиада",
-    date: "2024-03-10",
-    createdAt: "2024-03-01",
-    status: "На проверке",
-  },
-  {
-    id: "109",
-    fullName: "Петр Семенов",
-    groupNumber: "Б06-777",
-    reason: "Конференция",
-    date: "2024-03-12",
-    createdAt: "2024-03-02",
-    status: "Одобрено",
-  },
-];
-
 const RequestCollapseList = () => {
-  const [requests, setRequests] = useState<Request[]>(initialRequests);
+  const [requests, setRequests] = useState<Request[]>([]);
   const [editingRequest, setEditingRequest] = useState<Request | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [groupFilter, setGroupFilter] = useState<string | null>(null);
   const [searchName, setSearchName] = useState<string>("");
-  const [dateFilter, setDateFilter] = useState<[string, string] | null>(null);
+  const [dateFilter, setDateFilter] = useState<
+    [Date | null, Date | null] | null
+  >(null);
   const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        getRequests({}).then((response) => {
+          setRequests(response);
+        });
+      } catch {
+        message.error("Ошибка при получении запросов");
+      }
+    };
+
+    fetchRequests();
+  }, []);
 
   // Фильтрация
   const filteredRequests = requests
     .filter((req) => !statusFilter || req.status === statusFilter)
-    .filter((req) => !groupFilter || req.groupNumber === groupFilter)
+    // .filter((req) => !groupFilter || req.groupNumber === groupFilter)
     .filter(
       (req) =>
         !searchName ||
-        req.fullName.toLowerCase().includes(searchName.toLowerCase())
+        req.creator.name.toLowerCase().includes(searchName.toLowerCase())
     )
-    .filter(
-      (req) =>
-        !dateFilter || (req.date >= dateFilter[0] && req.date <= dateFilter[1])
-    );
+    .filter((req) => (dateFilter?.[0] ? req.dateStart >= dateFilter[0] : true))
+    .filter((req) => (dateFilter?.[1] ? req.dateEnd <= dateFilter[1] : true));
 
   const paginatedRequests = filteredRequests.slice(
     (currentPage - 1) * PAGE_SIZE,
@@ -156,13 +74,13 @@ const RequestCollapseList = () => {
 
   // Одобрение
   const confirmRequest = (id: string) => {
-    updateRequest(id, { status: "Одобрено" });
+    updateRequest(id, { status: "APPROVED" });
     message.success("Заявка одобрена!");
   };
 
   // Отклонение
   const rejectRequest = (id: string) => {
-    updateRequest(id, { status: "Отклонено" });
+    updateRequest(id, { status: "DECLINDE" });
     message.error("Заявка отклонена!");
   };
 
@@ -200,116 +118,88 @@ const RequestCollapseList = () => {
         {paginatedRequests.map((req) => (
           <Panel
             key={req.id}
-            header={`${req.fullName} (${req.groupNumber}) - ${req.reason}`}
+            header={`${req.creator.name} - ${reasonToString(req.reason)}`}
             extra={
               <Tag
                 color={
-                  req.status === "Одобрено"
+                  req.status === "APPROVED"
                     ? "green"
-                    : req.status === "Отклонено"
+                    : req.status === "DECLINDE"
                     ? "red"
                     : "orange"
                 }
               >
-                {req.status}
+                {statusToString(req.status)}
               </Tag>
             }
           >
-            {editingRequest && editingRequest.id === req.id ? (
-              <>
-                <Input
-                  defaultValue={req.reason}
-                  onChange={(e) =>
-                    setEditingRequest({
-                      ...editingRequest,
-                      reason: e.target.value,
-                    })
-                  }
-                  style={{ marginBottom: 10 }}
-                  size="large"
-                />
-                <DatePicker
-                  defaultValue={dayjs(req.date)}
-                  onChange={(date) =>
-                    setEditingRequest({
-                      ...editingRequest,
-                      date: date?.format("YYYY-MM-DD") || req.date,
-                    })
-                  }
-                  style={{ marginBottom: 10 }}
-                  size="large"
-                />
-                <Button
-                  type="primary"
-                  onClick={() => updateRequest(req.id, editingRequest)}
-                  size="large"
-                >
-                  Сохранить
-                </Button>
-                <Button
-                  onClick={() => setEditingRequest(null)}
-                  style={{ marginLeft: 8 }}
-                  size="large"
-                >
-                  Отмена
-                </Button>
-              </>
-            ) : (
-              <>
-                <p>
-                  <b>Дата пропуска:</b> {req.date}
-                </p>
-                <p>
-                  <b>Дата создания:</b> {req.createdAt}
-                </p>
-                <p>
-                  <b>Документ:</b>{" "}
-                  {req.document ? (
+            <>
+              <p>
+                <b>Описание:</b> {req.comment}
+              </p>
+              <p>
+                <b>Дата пропуска:</b>
+                {` ${req.dateStart.toLocaleDateString()} - ${req.dateEnd.toLocaleDateString()}`}
+              </p>
+              <p>
+                <b>Дата создания:</b> {req.createdAt.toLocaleDateString()}
+              </p>
+              <p>
+                <b>Документы в деканате:</b> {req.fileInDean ? "Да" : "Нет"}
+              </p>
+              <p>
+                <b>Документ:</b>{" "}
+                {/* {req.document ? (
                     <a href={`#${req.document}`} download>
                       {req.document}
                     </a>
                   ) : (
                     "Нет"
-                  )}
+                  )} */}
+              </p>
+              {req.moderator && (
+                <p>
+                  <b>Вердикт пользователя:</b> {req.moderator.name}
                 </p>
+              )}
 
-                <Button
-                  icon={<EditOutlined />}
-                  onClick={() => setEditingRequest(req)}
-                  style={{ marginRight: 8 }}
-                  size="large"
-                >
-                  Редактировать
-                </Button>
-                <Button
-                  icon={<DeleteOutlined />}
-                  danger
-                  onClick={() => deleteRequest(req.id)}
-                  style={{ marginRight: 8 }}
-                  size="large"
-                >
-                  Удалить
-                </Button>
-                <Button
-                  icon={<CheckCircleOutlined />}
-                  type="primary"
-                  onClick={() => confirmRequest(req.id)}
-                  style={{ marginRight: 8 }}
-                  size="large"
-                >
-                  Одобрить
-                </Button>
-                <Button
-                  icon={<CloseCircleOutlined />}
-                  type="default"
-                  danger
-                  onClick={() => rejectRequest(req.id)}
-                  size="large"
-                >
-                  Отклонить
-                </Button>
-              </>
-            )}
+              <Button
+                icon={<EditOutlined />}
+                onClick={() => setEditingRequest(req)}
+                style={{ marginRight: 8, marginBottom: 8 }}
+                size="large"
+              >
+                Редактировать
+              </Button>
+              <Button
+                icon={<DeleteOutlined />}
+                danger
+                onClick={() => deleteRequest(req.id)}
+                style={{ marginRight: 8, marginBottom: 8 }}
+                size="large"
+              >
+                Удалить
+              </Button>
+              <Button
+                icon={<CheckCircleOutlined />}
+                type="primary"
+                onClick={() => confirmRequest(req.id)}
+                style={{ marginRight: 8, marginBottom: 8 }}
+                size="large"
+              >
+                Одобрить
+              </Button>
+              <Button
+                icon={<CloseCircleOutlined />}
+                type="default"
+                danger
+                onClick={() => rejectRequest(req.id)}
+                style={{ marginRight: 8, marginBottom: 8 }}
+                size="large"
+              >
+                Отклонить
+              </Button>
+            </>
           </Panel>
         ))}
       </Collapse>

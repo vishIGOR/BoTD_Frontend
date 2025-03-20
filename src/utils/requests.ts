@@ -1,5 +1,5 @@
 import { Group } from "../models/Group";
-import { Reason, Status } from "../models/Request";
+import { Reason, Request, Status } from "../models/Request";
 import { Role } from "../models/Role";
 import { UserProfile } from "../models/User";
 import authApi from "./authApi";
@@ -114,7 +114,7 @@ export const getRequests = async (queryParams: {
   status?: Status;
   reason?: Reason;
   groupNumber?: number;
-}) => {
+}): Promise<Request[]> => {
   if (!MAIN_BACKEND_URL) {
     throw new Error("MAIN_BACKEND_URL is not defined");
   }
@@ -124,12 +124,62 @@ export const getRequests = async (queryParams: {
     throw new Error("No token found");
   }
 
-  return authApi.get("/requests", {
-    headers: {
-      Authorization: `Bearer ${tokenData.token}`,
-    },
-    params: queryParams,
-  });
+  return mainApi
+    .get("/requests", {
+      headers: {
+        Authorization: `Bearer ${tokenData.token}`,
+      },
+      params: queryParams,
+    })
+    .then(
+      (response: {
+        data: {
+          id: string;
+          creator: {
+            id: string;
+            name: string;
+            login: string;
+            role: string;
+          };
+          moderator: {
+            id: string;
+            name: string;
+            login: string;
+            role: string;
+          } | null;
+          dateStart: string;
+          dateEnd: string;
+          createdAt: string;
+          reason: Reason;
+          status: Status;
+          comment: string;
+          fileInDean: boolean;
+          files: { id: string }[];
+        }[];
+      }) => {
+        return response?.data?.map((request) => {
+          return {
+            ...request,
+            creator: {
+              ...request.creator,
+              role: request.creator.role as Role,
+            },
+            moderator: request.moderator
+              ? {
+                  ...request.moderator,
+                  role: request.moderator.role as Role,
+                }
+              : null,
+            createdAt: new Date(request.createdAt),
+            dateStart: new Date(request.dateStart),
+            dateEnd: new Date(request.dateEnd),
+          };
+        });
+      }
+    )
+    .catch((error) => {
+      return Promise.reject(error);
+    });
 };
 
 export const getGroups = async (): Promise<Group[]> => {

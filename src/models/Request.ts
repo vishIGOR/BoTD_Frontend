@@ -1,14 +1,48 @@
+import { UserProfile } from "./User";
+
 export interface Request {
   id: string;
-  fullName: string;
-  groupNumber: string;
+  creator: UserProfile;
+  moderator: UserProfile | null;
+
   reason: Reason;
-  date: string;
-  createdAt: string;
-  status: string;
-  document?: string;
+  status: Status;
+  comment: string;
+
+  createdAt: Date;
+  dateStart: Date;
+  dateEnd: Date;
+
+  fileInDean: boolean;
+  files: { id: string }[];
 }
 
 export type Reason = "FAMILY" | "ILLNESS" | "STUDENT_ACTIVITY";
 
+export function reasonToString(reason: Reason): string {
+  switch (reason) {
+    case "FAMILY":
+      return "Семейные обстоятельства";
+    case "ILLNESS":
+      return "Болезнь";
+    case "STUDENT_ACTIVITY":
+      return "Студенческая активность";
+    default:
+      return "Неизвестно";
+  }
+}
+
 export type Status = "PENDING" | "APPROVED" | "DECLINDE";
+
+export function statusToString(status: Status): string {
+  switch (status) {
+    case "PENDING":
+      return "На проверке";
+    case "APPROVED":
+      return "Подтверждено";
+    case "DECLINDE":
+      return "Отклонено";
+    default:
+      return "Неизвестно";
+  }
+}
