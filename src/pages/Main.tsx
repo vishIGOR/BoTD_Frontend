@@ -16,8 +16,8 @@ function Main() {
       navbarProps={{
         leftButtons: (
           <>
-            <NavbarLinkButton path="/requests">Заявки</NavbarLinkButton>
-            <NavbarLinkButton path="/users">Пользователи</NavbarLinkButton>
+            <NavbarLinkButton path="/">Заявки</NavbarLinkButton>
+            <NavbarLinkButton path="/users">Пользователи и группы</NavbarLinkButton>
           </>
         ),
         rightButtons: (
@@ -41,7 +41,7 @@ function Main() {
         ),
       }}
       contentProps={{
-        breadcrumbItems: [{ title: "Главная" }],
+        breadcrumbItems: [{ title: "Заявки" }],
         children: (
           <>
             <RequestList />

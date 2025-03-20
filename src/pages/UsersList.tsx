@@ -18,6 +18,10 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import MainPageSceleton from "../components/MainPageSceleton";
 import NavbarLinkButton from "../components/NavbarLinkButton";
+import { useUserProfileContext } from "../context/UserProfileContext";
+import { useNavigate } from "react-router-dom";
+import { roleToString } from "../models/Role";
+import { deleteTokenData } from "../utils/storage";
 
 const { Option } = Select;
 const { Panel } = Collapse;
@@ -36,6 +40,9 @@ interface Group {
 }
 
 const UsersAndGroups = () => {
+  const { userProfile } = useUserProfileContext();
+  const navigate = useNavigate();
+
   const [users, setUsers] = useState<User[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
@@ -175,8 +182,7 @@ const UsersAndGroups = () => {
       navbarProps={{
         leftButtons: (
           <>
-            <NavbarLinkButton path="/requests">Заявки</NavbarLinkButton>
-            <NavbarLinkButton path="/export">Экспорт заявок</NavbarLinkButton>
+            <NavbarLinkButton path="/">Заявки</NavbarLinkButton>
             <NavbarLinkButton path="/users">
               Пользователи и группы
             </NavbarLinkButton>
@@ -184,8 +190,21 @@ const UsersAndGroups = () => {
         ),
         rightButtons: (
           <>
-            <NavbarLinkButton path="/login">Вход</NavbarLinkButton>
-            <NavbarLinkButton path="/register">Регистрация</NavbarLinkButton>
+            <div style={{ color: "white" }}>{`${
+              userProfile?.role
+                ? roleToString(userProfile?.role)
+                : "Пользователь"
+            } ${userProfile?.name}`}</div>
+            <Button
+              style={{ color: "white" }}
+              type="link"
+              onClick={() => {
+                deleteTokenData();
+                navigate("/login");
+              }}
+            >
+              Выход
+            </Button>
           </>
         ),
       }}

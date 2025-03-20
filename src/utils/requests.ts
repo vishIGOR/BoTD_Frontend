@@ -1,3 +1,5 @@
+import { Group } from "../models/Group";
+import { Reason, Status } from "../models/Request";
 import { Role } from "../models/Role";
 import { UserProfile } from "../models/User";
 import authApi from "./authApi";
@@ -6,29 +8,6 @@ import { getTokenData, saveTokenData } from "./storage";
 
 const AUTH_BACKEND_URL = import.meta.env.VITE_AUTH_BACKEND_URL;
 const MAIN_BACKEND_URL = import.meta.env.VITE_MAIN_BACKEND_URL;
-
-export const createRequest = async (data: {
-  reason: string;
-  date: string;
-  status: string;
-  file?: File;
-}) => {
-  if (!AUTH_BACKEND_URL) {
-    throw new Error("MAIN_BACKEND_URL is not defined");
-  }
-
-  const formData = new FormData();
-  formData.append("reason", data.reason);
-  formData.append("date", data.date);
-  formData.append("status", data.status);
-  if (data.file) {
-    formData.append("document", data.file);
-  }
-
-  return authApi.post("/request", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
-};
 
 export const register = async (data: {
   login: string;
@@ -41,9 +20,7 @@ export const register = async (data: {
   }
 
   return authApi
-    .post("/auth/register", data, {
-      headers: { "Content-Type": "application/json" },
-    })
+    .post("/auth/register", data)
     .then((response: { data: { token: string; expire: string } }) => {
       saveTokenData({
         token: response.data.token,
@@ -64,9 +41,7 @@ export const login = async (data: {
   }
 
   return authApi
-    .post("/auth/login", data, {
-      headers: { "Content-Type": "application/json" },
-    })
+    .post("/auth/login", data)
     .then((response: { data: { token: string; expire: string } }) => {
       saveTokenData({
         token: response.data.token,
@@ -91,7 +66,6 @@ export const getCurrentUserProfile = async (): Promise<UserProfile> => {
   return mainApi
     .get("/users/me", {
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${tokenData.token}`,
       },
     })
@@ -105,4 +79,296 @@ export const getCurrentUserProfile = async (): Promise<UserProfile> => {
     .catch((error) => {
       return Promise.reject(error);
     });
+};
+
+export const createRequest = async (data: {
+  dateStart: Date;
+  dateEnd: Date;
+  status: Status;
+  reason: Reason;
+  userId: string;
+  comment: string;
+  fileInDean: boolean;
+  fileUrl: string[];
+}) => {
+  if (!MAIN_BACKEND_URL) {
+    throw new Error("MAIN_BACKEND_URL is not defined");
+  }
+
+  const tokenData = getTokenData();
+  if (!tokenData) {
+    throw new Error("No token found");
+  }
+
+  return authApi.post("/request", data, {
+    headers: {
+      Authorization: `Bearer ${tokenData.token}`,
+    },
+  });
+};
+
+export const getRequests = async (queryParams: {
+  dataStart?: Date;
+  dataEnd?: Date;
+  name?: string;
+  status?: Status;
+  reason?: Reason;
+  groupNumber?: number;
+}) => {
+  if (!MAIN_BACKEND_URL) {
+    throw new Error("MAIN_BACKEND_URL is not defined");
+  }
+
+  const tokenData = getTokenData();
+  if (!tokenData) {
+    throw new Error("No token found");
+  }
+
+  return authApi.get("/requests", {
+    headers: {
+      Authorization: `Bearer ${tokenData.token}`,
+    },
+    params: queryParams,
+  });
+};
+
+export const getGroups = async (): Promise<Group[]> => {
+  if (!MAIN_BACKEND_URL) {
+    throw new Error("MAIN_BACKEND_URL is not defined");
+  }
+
+  const tokenData = getTokenData();
+  if (!tokenData) {
+    throw new Error("No token found");
+  }
+
+  return authApi
+    .get("/groups", {
+      headers: {
+        Authorization: `Bearer ${tokenData.token}`,
+      },
+    })
+    .then(
+      (response: {
+        data: {
+          id: string;
+          number: number;
+          students: {
+            id: string;
+            name: string;
+            login: string;
+            role: string;
+          }[];
+        }[];
+      }) => {
+        return (
+          response?.data?.map((group) => {
+            return {
+              id: group.id,
+              number: group.number,
+              students: group.students.map((student) => ({
+                id: student.id,
+                name: student.name,
+                login: student.login,
+                role: student.role as Role,
+              })),
+            };
+          }) || []
+        );
+      }
+    )
+    .catch((error) => {
+      return Promise.reject(error);
+    });
+};
+
+export const createGroup = async (data: {
+  number: number;
+  students: { id: string }[];
+}) => {
+  if (!MAIN_BACKEND_URL) {
+    throw new Error("MAIN_BACKEND_URL is not defined");
+  }
+
+  const tokenData = getTokenData();
+  if (!tokenData) {
+    throw new Error("No token found");
+  }
+
+  return authApi.post("/groups", data, {
+    headers: {
+      Authorization: `Bearer ${tokenData.token}`,
+    },
+  });
+};
+
+export const uploadRequestFiles = async (requestId: string, files: File[]) => {
+  if (!MAIN_BACKEND_URL) {
+    throw new Error("MAIN_BACKEND_URL is not defined");
+  }
+
+  const tokenData = getTokenData();
+  if (!tokenData) {
+    throw new Error("No token found");
+  }
+
+  const formData = new FormData();
+  files.forEach((file) => {
+    formData.append("file", file);
+  });
+
+  return mainApi.post(`/v1/requests/upload/${requestId}`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+      Authorization: `Bearer ${tokenData.token}`,
+    },
+  });
+};
+
+export const exportRequests = async (queryParams: {
+  dataStart?: Date;
+  dataEnd?: Date;
+  name?: string;
+  status?: Status;
+  reason?: Reason;
+  groupNumber?: number;
+}) => {
+  if (!MAIN_BACKEND_URL) {
+    throw new Error("MAIN_BACKEND_URL is not defined");
+  }
+
+  const tokenData = getTokenData();
+  if (!tokenData) {
+    throw new Error("No token found");
+  }
+
+  return mainApi.get("/v1/requests/export", {
+    headers: {
+      Authorization: `Bearer ${tokenData.token}`,
+    },
+    params: queryParams,
+    responseType: "blob", // To handle binary data (zip file)
+  });
+};
+
+export const getUserRequests = async (
+  userId: string,
+  queryParams: {
+    dataStart?: Date;
+    dataEnd?: Date;
+    status?: Status;
+  }
+) => {
+  if (!MAIN_BACKEND_URL) {
+    throw new Error("MAIN_BACKEND_URL is not defined");
+  }
+
+  const tokenData = getTokenData();
+  if (!tokenData) {
+    throw new Error("No token found");
+  }
+
+  return mainApi.get(`/v1/requests/users/${userId}`, {
+    headers: {
+      Authorization: `Bearer ${tokenData.token}`,
+    },
+    params: queryParams,
+  });
+};
+
+export const exportUserRequests = async (
+  userId: string,
+  queryParams: {
+    dataStart?: Date;
+    dataEnd?: Date;
+  }
+) => {
+  if (!MAIN_BACKEND_URL) {
+    throw new Error("MAIN_BACKEND_URL is not defined");
+  }
+
+  const tokenData = getTokenData();
+  if (!tokenData) {
+    throw new Error("No token found");
+  }
+
+  return mainApi.get(`/v1/requests/${userId}/export`, {
+    headers: {
+      Authorization: `Bearer ${tokenData.token}`,
+    },
+    params: queryParams,
+    responseType: "blob", // To handle binary data (zip file)
+  });
+};
+
+export const updateRequestStatus = async (
+  requestId: string,
+  data: {
+    creatorId: string;
+    dateStart: Date;
+    dateEnd: Date;
+    comment: string;
+    status: Status;
+    reason: Reason;
+    fileInDean: boolean;
+  }
+) => {
+  if (!MAIN_BACKEND_URL) {
+    throw new Error("MAIN_BACKEND_URL is not defined");
+  }
+
+  const tokenData = getTokenData();
+  if (!tokenData) {
+    throw new Error("No token found");
+  }
+
+  return mainApi.put(`/v1/requests/${requestId}`, data, {
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${tokenData.token}`,
+    },
+  });
+};
+
+export const getUsers = async (queryParams: {
+  name?: string;
+  groupNumber?: number;
+  role?: Role;
+}) => {
+  if (!MAIN_BACKEND_URL) {
+    throw new Error("MAIN_BACKEND_URL is not defined");
+  }
+
+  const tokenData = getTokenData();
+  if (!tokenData) {
+    throw new Error("No token found");
+  }
+
+  return mainApi.get("/v1/users", {
+    headers: {
+      Authorization: `Bearer ${tokenData.token}`,
+    },
+    params: queryParams,
+  });
+};
+
+export const updateUserRole = async (userId: string, role: Role) => {
+  if (!MAIN_BACKEND_URL) {
+    throw new Error("MAIN_BACKEND_URL is not defined");
+  }
+
+  const tokenData = getTokenData();
+  if (!tokenData) {
+    throw new Error("No token found");
+  }
+
+  return mainApi.patch(
+    `/v1/users/${userId}`,
+    { role },
+    {
+      headers: {
+        Authorization: `Bearer ${tokenData.token}`,
+      },
+    }
+  );
 };
