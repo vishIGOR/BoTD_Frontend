@@ -17,6 +17,7 @@ function Main() {
         leftButtons: (
           <>
             <NavbarLinkButton path="/requests">Заявки</NavbarLinkButton>
+            <NavbarLinkButton path="/users">Пользователи</NavbarLinkButton>
           </>
         ),
         rightButtons: (

@@ -7,6 +7,9 @@ import "./index.css";
 import LoginPage from "./pages/Login.tsx";
 import Main from "./pages/Main.tsx";
 import RegisterPage from "./pages/Register.tsx";
+import ListPage from "./pages/UsersList.tsx";
+import "./index.css";
+import "antd/dist/reset.css";
 import MainProviders from "./context/MainProviders.tsx";
 
 createRoot(document.getElementById("root")!).render(
@@ -23,6 +26,7 @@ createRoot(document.getElementById("root")!).render(
         />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/users" element={<ListPage />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>
