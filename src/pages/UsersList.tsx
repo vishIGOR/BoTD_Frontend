@@ -1,6 +1,5 @@
 import {
   DeleteOutlined,
-  EditOutlined,
   PlusOutlined,
   UserSwitchOutlined,
 } from "@ant-design/icons";
@@ -13,6 +12,7 @@ import {
   Spin,
   Tabs,
   Tag,
+  List,
 } from "antd";
 import axios from "axios";
 import { useEffect, useState } from "react";
@@ -20,7 +20,6 @@ import MainPageSceleton from "../components/MainPageSceleton";
 import NavbarLinkButton from "../components/NavbarLinkButton";
 
 const { Option } = Select;
-const { Panel } = Collapse;
 
 interface User {
   id: string;
@@ -33,17 +32,18 @@ interface User {
 interface Group {
   id: string;
   number: number;
+  students: User[]; 
 }
+
+const API_URL = "https://j2fyo7-79-136-223-200.ru.tuna.am/api/v1";
 
 const UsersAndGroups = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadingGroups, setLoadingGroups] = useState(true);
-  const [roleFilter, setRoleFilter] = useState<string | null>(null);
-  const [groupFilter, setGroupFilter] = useState<number | null>(null);
-  const [searchName, setSearchName] = useState<string>("");
   const [newGroupNumber, setNewGroupNumber] = useState("");
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]); 
   const token = localStorage.getItem("accessToken");
 
   useEffect(() => {
@@ -51,85 +51,71 @@ const UsersAndGroups = () => {
     fetchGroups();
   }, []);
 
-  const mockUsers: User[] = [
-    {
-      id: "1",
-      name: "Иван Иванов",
-      login: "ivanov",
-      role: "STUDENT",
-      groupNumber: 101,
-    },
-    {
-      id: "2",
-      name: "Мария Смирнова",
-      login: "smirnova",
-      role: "TEACHER",
-      groupNumber: 102,
-    },
-    {
-      id: "3",
-      name: "Алексей Кузнецов",
-      login: "kuznetsov",
-      role: "STUDENT",
-      groupNumber: 103,
-    },
-  ];
-
-  const mockGroups: Group[] = [
-    { id: "g1", number: 101 },
-    { id: "g2", number: 102 },
-    { id: "g3", number: 103 },
-  ];
-
   const fetchUsers = async () => {
     setLoadingUsers(true);
     try {
-      const response = await axios.get("http://51.250.40.237/users", {
+      if (!token) {
+        throw new Error("Токен авторизации отсутствует.");
+      }
+
+      const response = await axios.get(`${API_URL}/users`, {
         headers: { Authorization: `Bearer ${token}` },
-        params: {
-          name: searchName || undefined,
-          groupNumber: groupFilter || undefined,
-          role: roleFilter || undefined,
-        },
       });
-      setUsers(response.data);
+
+      if (response.data && Array.isArray(response.data)) {
+        setUsers(response.data);
+      } else {
+        throw new Error("Некорректные данные пользователей.");
+      }
     } catch (error) {
-      message.warning("API не работает, загружены тестовые данные.");
-      setUsers(mockUsers);
+      console.error("Ошибка при загрузке пользователей:", error);
+      message.error("Не удалось загрузить пользователей.");
     } finally {
       setLoadingUsers(false);
     }
   };
 
-  const updateUserRole = async (id: string, newRole: "STUDENT" | "TEACHER") => {
+  const updateUserRole = async (id: string, newRole: "STUDENT" | "ADMIN" | "DEAN" | "TEACHER") => {
     try {
+      if (!token) {
+        throw new Error("Токен авторизации отсутствует.");
+      }
+
       await axios.patch(
-        `http://51.250.40.237/users${id}`,
+        `${API_URL}/users/${id}`,
         { role: newRole },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
       setUsers((prev) =>
         prev.map((user) => (user.id === id ? { ...user, role: newRole } : user))
       );
       message.success(`Роль пользователя изменена на ${newRole}`);
     } catch (error) {
-      message.warning("API не работает, меняем локально.");
-      setUsers((prev) =>
-        prev.map((user) => (user.id === id ? { ...user, role: newRole } : user))
-      );
+      console.error("Ошибка при изменении роли пользователя:", error);
+      message.error("Не удалось изменить роль пользователя.");
     }
   };
 
   const fetchGroups = async () => {
     setLoadingGroups(true);
     try {
-      const response = await axios.get("http://51.250.40.237/groups", {
+      if (!token) {
+        throw new Error("Токен авторизации отсутствует.");
+      }
+
+      const response = await axios.get(`${API_URL}/groups`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setGroups(response.data);
+
+      if (response.data && Array.isArray(response.data)) {
+        setGroups(response.data);
+      } else {
+        throw new Error("Некорректные данные групп.");
+      }
     } catch (error) {
-      message.warning("API не работает, загружены тестовые данные.");
-      setGroups(mockGroups);
+      console.error("Ошибка при загрузке групп:", error);
+      message.error("Не удалось загрузить группы.");
     } finally {
       setLoadingGroups(false);
     }
@@ -140,35 +126,181 @@ const UsersAndGroups = () => {
       message.warning("Введите номер группы!");
       return;
     }
+
+    const groupNumber = parseInt(newGroupNumber);
+    if (isNaN(groupNumber)) {
+      message.warning("Номер группы должен быть числом!");
+      return;
+    }
+
     try {
-      await axios.post(
-        "http://51.250.40.237/groups",
-        { number: parseInt(newGroupNumber), students: [] },
+      if (!token) {
+        throw new Error("Токен авторизации отсутствует.");
+      }
+
+      const response = await axios.post(
+        `${API_URL}/groups`,
+        { number: groupNumber, students: selectedUsers },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      message.success("Группа создана!");
-      fetchGroups();
+
+      if (response.status === 204) {
+        message.success("Группа создана!");
+
+  
+        const newGroup = {
+          id: Date.now().toString(), 
+          number: groupNumber,
+          students: users.filter((user) => selectedUsers.includes(user.id)), 
+        };
+        setGroups((prevGroups) => [...prevGroups, newGroup]);
+
+        setNewGroupNumber("");
+        setSelectedUsers([]);
+      } else {
+        throw new Error(`Не удалось создать группу. Код ответа: ${response.status}`);
+      }
     } catch (error) {
-      message.warning("API не работает, добавляем тестовые данные.");
-      setGroups((prev) => [
-        ...prev,
-        { id: `mock-${Date.now()}`, number: parseInt(newGroupNumber) },
-      ]);
+      console.error("Ошибка при создании группы:", error);
+      message.error("Не удалось создать группу. Проверьте данные и попробуйте снова.");
     }
   };
 
   const deleteGroup = async (id: string) => {
     try {
-      await axios.delete(`http://51.250.40.237/groups/${id}`, {
+      if (!token) {
+        throw new Error("Токен авторизации отсутствует.");
+      }
+
+      await axios.delete(`${API_URL}/groups/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       message.success("Группа удалена!");
-      fetchGroups();
+      setGroups((prevGroups) => prevGroups.filter((group) => group.id !== id));
     } catch (error) {
-      message.warning("API не работает, удаляем локально.");
-      setGroups((prev) => prev.filter((group) => group.id !== id));
+      console.error("Ошибка при удалении группы:", error);
+      message.error("Не удалось удалить группу.");
     }
   };
+
+  const collapseItems = users.map((user) => ({
+    key: user.id,
+    label: `${user.name} (${user.login})`,
+    children: (
+      <>
+        <p>
+          <b>Роль:</b> <Tag color="blue">{user.role}</Tag>
+        </p>
+        <p>
+          <b>Группа:</b> {user.groupNumber || "Нет"}
+        </p>
+        {user.role === "STUDENT" ? (
+          <Button
+            type="primary"
+            icon={<UserSwitchOutlined />}
+            onClick={() => updateUserRole(user.id, "TEACHER")}
+          >
+            Назначить учителем
+          </Button>
+        ) : user.role === "TEACHER" ? (
+          <Button
+            danger
+            icon={<UserSwitchOutlined />}
+            onClick={() => updateUserRole(user.id, "STUDENT")}
+          >
+            Снять роль учителя
+          </Button>
+        ) : null}
+      </>
+    ),
+  }));
+
+  const groupCollapseItems = groups.map((group) => ({
+    key: group.id,
+    label: `Группа №${group.number}`,
+    children: (
+      <>
+        <h3>Участники группы:</h3>
+        <List
+          dataSource={group.students}
+          renderItem={(student) => (
+            <List.Item>
+              {student.name} ({student.login})
+            </List.Item>
+          )}
+        />
+        <Button
+          icon={<DeleteOutlined />}
+          danger
+          onClick={() => deleteGroup(group.id)}
+        >
+          Удалить группу
+        </Button>
+      </>
+    ),
+  }));
+
+  const tabItems = [
+    {
+      key: "1",
+      label: "Пользователи",
+      children: (
+        <>
+          <h1>Список пользователей</h1>
+          {loadingUsers ? (
+            <Spin tip="Загрузка..." size="large" fullscreen />
+          ) : (
+            <Collapse accordion items={collapseItems} />
+          )}
+        </>
+      ),
+    },
+    {
+      key: "2",
+      label: "Группы",
+      children: (
+        <>
+          <h1>Список групп</h1>
+          <Input
+            placeholder="Введите номер группы"
+            type="number"
+            value={newGroupNumber}
+            onChange={(e) => setNewGroupNumber(e.target.value)}
+            style={{ width: 200, marginRight: 10 }}
+          />
+          <Select
+            mode="multiple"
+            placeholder="Выберите пользователей"
+            value={selectedUsers}
+            onChange={(values) => setSelectedUsers(values)}
+            style={{ width: "100%", marginBottom: 16 }}
+          >
+            {users
+              .filter((user) => user.role === "STUDENT") 
+              .map((user) => (
+                <Option key={user.id} value={user.id}>
+                  {user.name} ({user.login})
+                </Option>
+              ))}
+          </Select>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={createGroup}
+          >
+            Создать группу
+          </Button>
+
+          {loadingGroups ? (
+            <Spin tip="Загрузка..." size="large" fullscreen />
+          ) : (
+            <Collapse accordion items={groupCollapseItems} />
+          )}
+        </>
+      ),
+    },
+  ];
 
   return (
     <MainPageSceleton
@@ -191,96 +323,7 @@ const UsersAndGroups = () => {
       }}
       contentProps={{
         breadcrumbItems: [{ title: "Пользователи и группы" }],
-        children: (
-          <Tabs defaultActiveKey="1">
-            {}
-            <Tabs.TabPane tab="Пользователи" key="1">
-              <h1>Список пользователей</h1>
-              {loadingUsers ? (
-                <Spin tip="Загрузка..." />
-              ) : (
-                <Collapse accordion>
-                  {users.map((user) => (
-                    <Panel
-                      key={user.id}
-                      header={`${user.name} (${user.login})`}
-                    >
-                      <p>
-                        <b>Роль:</b> <Tag color="blue">{user.role}</Tag>
-                      </p>
-                      <p>
-                        <b>Группа:</b> {user.groupNumber || "Нет"}
-                      </p>
-                      {user.role === "STUDENT" ? (
-                        <Button
-                          type="primary"
-                          icon={<UserSwitchOutlined />}
-                          onClick={() => updateUserRole(user.id, "TEACHER")}
-                        >
-                          Назначить учителем
-                        </Button>
-                      ) : user.role === "TEACHER" ? (
-                        <Button
-                          danger
-                          icon={<UserSwitchOutlined />}
-                          onClick={() => updateUserRole(user.id, "STUDENT")}
-                        >
-                          Снять роль учителя
-                        </Button>
-                      ) : null}
-                    </Panel>
-                  ))}
-                </Collapse>
-              )}
-            </Tabs.TabPane>
-
-            {}
-            <Tabs.TabPane tab="Группы" key="2">
-              <h1>Список групп</h1>
-
-              <Input
-                placeholder="Введите номер группы"
-                type="number"
-                onChange={(e) => setNewGroupNumber(e.target.value)}
-                style={{ width: 200, marginRight: 10 }}
-              />
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={createGroup}
-              >
-                Создать группу
-              </Button>
-
-              {loadingGroups ? (
-                <Spin tip="Загрузка..." />
-              ) : (
-                <Collapse accordion>
-                  {groups.map((group) => (
-                    <Panel key={group.id} header={`Группа №${group.number}`}>
-                      <Button
-                        icon={<EditOutlined />}
-                        style={{ marginRight: 8 }}
-                        onClick={() =>
-                          message.info("Редактирование групп пока не доступно")
-                        }
-                      >
-                        Редактировать
-                      </Button>
-                      <Button
-                        icon={<DeleteOutlined />}
-                        danger
-                        onClick={() => deleteGroup(group.id)}
-                      >
-                        Удалить
-                      </Button>
-                    </Panel>
-                  ))}
-                </Collapse>
-              )}
-            </Tabs.TabPane>
-          </Tabs>
-        ),
+        children: <Tabs defaultActiveKey="1" items={tabItems} />,
       }}
     />
   );
