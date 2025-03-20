@@ -1,0 +1,11 @@
+.auth_form {
+  :global(.ant-form-item-label) {
+    width: 100px !important;
+    display: flex;
+    flex-direction: row;
+    align-items: start;
+    justify-content: start;
+    font-weight: 600;
+    /* margin-top: 10px; */
+  }
+}

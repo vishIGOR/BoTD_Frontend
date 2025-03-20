@@ -1,33 +1,58 @@
+import { Button, Form, Grid, Input, message, Select, Space } from "antd";
 import React from "react";
-import { Form, Input, Button, Select, message } from "antd";
 import { useNavigate } from "react-router-dom";
-import PageSceleton from "../components/PageSceleton";
+import formStyles from "../commonStyles/forms.module.css";
+import AuthPageSceleton from "../components/AuthPageSceleton";
+import NavbarLinkButton from "../components/NavbarLinkButton";
+import { isRole, Role } from "../models/Role";
+import { register } from "../utils/requests";
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
 
-  const onFinish = (values: { login: string; name: string; password: string; role: string }) => {
+  const { lg } = Grid.useBreakpoint();
+
+  const onFinish = async (values: {
+    login: string;
+    name: string;
+    password: string;
+    role: string;
+  }) => {
     console.log("Received values:", values);
-    message.success("Регистрация прошла успешно!");
-    navigate("/login");
+
+    if (!isRole(values.role)) {
+      return;
+    }
+
+    register({ ...values, role: values.role as Role })
+      .then(() => navigate("/"))
+      .catch(() => {
+        message.error("Произошла ошибка при отправке запроса к серверу");
+      });
   };
 
   return (
-    <PageSceleton
+    <AuthPageSceleton
       navbarProps={{
-        leftButtons: <></>,
-        rightButtons: <></>,
+        leftButtons: <div></div>,
+        rightButtons: (
+          <>
+            <NavbarLinkButton path="/login">Вход</NavbarLinkButton>
+            <NavbarLinkButton path="/register">Регистрация</NavbarLinkButton>
+          </>
+        ),
       }}
       contentProps={{
-        breadcrumbItems: [{ title: "Регистрация" }],
         children: (
-          <Form onFinish={onFinish}>
+          <Form onFinish={onFinish} className={formStyles.auth_form}>
             <Form.Item
               label="Логин"
               name="login"
-              rules={[{ required: true, message: "Пожалуйста, введите логин!" }]}
+              rules={[
+                { required: true, message: "Пожалуйста, введите логин!" },
+              ]}
             >
-              <Input />
+              <Input size="large" />
             </Form.Item>
 
             <Form.Item
@@ -35,33 +60,60 @@ const Register: React.FC = () => {
               name="name"
               rules={[{ required: true, message: "Пожалуйста, введите ФИО!" }]}
             >
-              <Input />
+              <Input size="large" />
             </Form.Item>
 
             <Form.Item
               label="Пароль"
               name="password"
-              rules={[{ required: true, message: "Пожалуйста, введите пароль!" }]}
+              rules={[
+                { required: true, message: "Пожалуйста, введите пароль!" },
+              ]}
             >
-              <Input.Password />
+              <Input.Password size="large" />
             </Form.Item>
 
             <Form.Item
               label="Роль"
               name="role"
-              rules={[{ required: true, message: "Пожалуйста, выберите роль!" }]}
+              rules={[
+                { required: true, message: "Пожалуйста, выберите роль!" },
+              ]}
             >
-              <Select>
-                <Select.Option value="student">Студент</Select.Option>
-                <Select.Option value="teacher">Преподаватель</Select.Option>
-                <Select.Option value="admin">Администратор</Select.Option>
+              <Select size="large">
+                <Select.Option value="STUDENT">Студент</Select.Option>
+                <Select.Option value="TEACHER">Преподаватель</Select.Option>
               </Select>
             </Form.Item>
 
             <Form.Item>
-              <Button type="primary" htmlType="submit">
-                Зарегистрироваться
-              </Button>
+              <Space
+                size={10}
+                direction={lg ? "horizontal" : "vertical"}
+                style={{
+                  display: "flex",
+                }}
+              >
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  size="large"
+                  style={{ width: lg ? undefined : "100%" }}
+                >
+                  Зарегистрироваться
+                </Button>
+                <Button
+                  type="default"
+                  htmlType="button"
+                  onClick={() => {
+                    navigate("/login");
+                  }}
+                  size="large"
+                  style={{ width: lg ? undefined : "100%" }}
+                >
+                  На страницу входа
+                </Button>
+              </Space>
             </Form.Item>
           </Form>
         ),

@@ -1,8 +1,22 @@
-import { useEffect, useState } from "react";
-import { Collapse, Button, Input, Select, message, Tag, Spin, Tabs } from "antd";
-import { EditOutlined, DeleteOutlined, PlusOutlined, UserSwitchOutlined } from "@ant-design/icons";
+import {
+  DeleteOutlined,
+  EditOutlined,
+  PlusOutlined,
+  UserSwitchOutlined,
+} from "@ant-design/icons";
+import {
+  Button,
+  Collapse,
+  Input,
+  message,
+  Select,
+  Spin,
+  Tabs,
+  Tag,
+} from "antd";
 import axios from "axios";
-import PageSceleton from "../components/PageSceleton";
+import { useEffect, useState } from "react";
+import MainPageSceleton from "../components/MainPageSceleton";
 import NavbarLinkButton from "../components/NavbarLinkButton";
 
 const { Option } = Select;
@@ -37,11 +51,28 @@ const UsersAndGroups = () => {
     fetchGroups();
   }, []);
 
-
   const mockUsers: User[] = [
-    { id: "1", name: "Иван Иванов", login: "ivanov", role: "STUDENT", groupNumber: 101 },
-    { id: "2", name: "Мария Смирнова", login: "smirnova", role: "TEACHER", groupNumber: 102 },
-    { id: "3", name: "Алексей Кузнецов", login: "kuznetsov", role: "STUDENT", groupNumber: 103 },
+    {
+      id: "1",
+      name: "Иван Иванов",
+      login: "ivanov",
+      role: "STUDENT",
+      groupNumber: 101,
+    },
+    {
+      id: "2",
+      name: "Мария Смирнова",
+      login: "smirnova",
+      role: "TEACHER",
+      groupNumber: 102,
+    },
+    {
+      id: "3",
+      name: "Алексей Кузнецов",
+      login: "kuznetsov",
+      role: "STUDENT",
+      groupNumber: 103,
+    },
   ];
 
   const mockGroups: Group[] = [
@@ -49,7 +80,6 @@ const UsersAndGroups = () => {
     { id: "g2", number: 102 },
     { id: "g3", number: 103 },
   ];
-
 
   const fetchUsers = async () => {
     setLoadingUsers(true);
@@ -90,7 +120,6 @@ const UsersAndGroups = () => {
     }
   };
 
-
   const fetchGroups = async () => {
     setLoadingGroups(true);
     try {
@@ -121,10 +150,12 @@ const UsersAndGroups = () => {
       fetchGroups();
     } catch (error) {
       message.warning("API не работает, добавляем тестовые данные.");
-      setGroups((prev) => [...prev, { id: `mock-${Date.now()}`, number: parseInt(newGroupNumber) }]);
+      setGroups((prev) => [
+        ...prev,
+        { id: `mock-${Date.now()}`, number: parseInt(newGroupNumber) },
+      ]);
     }
   };
-
 
   const deleteGroup = async (id: string) => {
     try {
@@ -140,13 +171,15 @@ const UsersAndGroups = () => {
   };
 
   return (
-    <PageSceleton
+    <MainPageSceleton
       navbarProps={{
         leftButtons: (
           <>
             <NavbarLinkButton path="/requests">Заявки</NavbarLinkButton>
             <NavbarLinkButton path="/export">Экспорт заявок</NavbarLinkButton>
-            <NavbarLinkButton path="/users">Пользователи и группы</NavbarLinkButton>
+            <NavbarLinkButton path="/users">
+              Пользователи и группы
+            </NavbarLinkButton>
           </>
         ),
         rightButtons: (
@@ -168,9 +201,16 @@ const UsersAndGroups = () => {
               ) : (
                 <Collapse accordion>
                   {users.map((user) => (
-                    <Panel key={user.id} header={`${user.name} (${user.login})`}>
-                      <p><b>Роль:</b> <Tag color="blue">{user.role}</Tag></p>
-                      <p><b>Группа:</b> {user.groupNumber || "Нет"}</p>
+                    <Panel
+                      key={user.id}
+                      header={`${user.name} (${user.login})`}
+                    >
+                      <p>
+                        <b>Роль:</b> <Tag color="blue">{user.role}</Tag>
+                      </p>
+                      <p>
+                        <b>Группа:</b> {user.groupNumber || "Нет"}
+                      </p>
                       {user.role === "STUDENT" ? (
                         <Button
                           type="primary"
@@ -204,7 +244,11 @@ const UsersAndGroups = () => {
                 onChange={(e) => setNewGroupNumber(e.target.value)}
                 style={{ width: 200, marginRight: 10 }}
               />
-              <Button type="primary" icon={<PlusOutlined />} onClick={createGroup}>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={createGroup}
+              >
                 Создать группу
               </Button>
 
@@ -217,11 +261,17 @@ const UsersAndGroups = () => {
                       <Button
                         icon={<EditOutlined />}
                         style={{ marginRight: 8 }}
-                        onClick={() => message.info("Редактирование групп пока не доступно")}
+                        onClick={() =>
+                          message.info("Редактирование групп пока не доступно")
+                        }
                       >
                         Редактировать
                       </Button>
-                      <Button icon={<DeleteOutlined />} danger onClick={() => deleteGroup(group.id)}>
+                      <Button
+                        icon={<DeleteOutlined />}
+                        danger
+                        onClick={() => deleteGroup(group.id)}
+                      >
                         Удалить
                       </Button>
                     </Panel>

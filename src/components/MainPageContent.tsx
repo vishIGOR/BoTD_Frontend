@@ -2,17 +2,17 @@ import { Breadcrumb } from "antd";
 import { Content } from "antd/es/layout/layout";
 import React, { ReactElement } from "react";
 
-export interface CustomContentProps {
+export interface MainPageContentProps {
   breadcrumbItems: { title: string; href?: string }[];
   children: React.ReactNode;
 }
-export default function CustomContent({
+export default function MainPageContent({
   breadcrumbItems,
   children,
-}: CustomContentProps): ReactElement {
+}: MainPageContentProps): ReactElement {
   return (
     <Content style={{ padding: "0 48px" }}>
-      <Breadcrumb style={{ margin: "16px 0" }} items={breadcrumbItems} />
+      <Breadcrumb style={{ margin: "16px 0", }} items={breadcrumbItems} />
       <div
         style={{
           background: "white",

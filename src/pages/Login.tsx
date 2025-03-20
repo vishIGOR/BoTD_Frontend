@@ -1,47 +1,88 @@
+import { Button, Form, Grid, Input, message, Space } from "antd";
 import React from "react";
-import { Form, Input, Button, message } from "antd";
 import { useNavigate } from "react-router-dom";
-import PageSceleton from "../components/PageSceleton";
+import AuthPageSceleton from "../components/AuthPageSceleton";
+import NavbarLinkButton from "../components/NavbarLinkButton";
+import formStyles from "../commonStyles/forms.module.css";
+import { login } from "../utils/requests";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
 
-  const onFinish = (values: { username: string; password: string }) => {
+  const { lg } = Grid.useBreakpoint();
+
+  const onFinish = (values: { login: string; password: string }) => {
     console.log("Received values:", values);
-    message.success("Вход выполнен успешно!");
-    navigate("/");
+
+    login({ ...values })
+      .then(() => navigate("/"))
+      .catch(() => {
+        message.error("Произошла ошибка при отправке запроса к серверу");
+      });
   };
 
   return (
-    <PageSceleton
+    <AuthPageSceleton
       navbarProps={{
-        leftButtons: <></>,
-        rightButtons: <></>,
+        leftButtons: <div></div>,
+        rightButtons: (
+          <>
+            <NavbarLinkButton path="/login">Вход</NavbarLinkButton>
+            <NavbarLinkButton path="/register">Регистрация</NavbarLinkButton>
+          </>
+        ),
       }}
       contentProps={{
-        breadcrumbItems: [{ title: "Вход" }],
         children: (
-          <Form onFinish={onFinish}>
+          <Form onFinish={onFinish} className={formStyles.auth_form}>
             <Form.Item
               label="Логин"
-              name="username"
-              rules={[{ required: true, message: "Пожалуйста, введите логин!" }]}
+              name="login"
+              rules={[
+                { required: true, message: "Пожалуйста, введите логин!" },
+              ]}
             >
-              <Input />
+              <Input size="large" />
             </Form.Item>
 
             <Form.Item
               label="Пароль"
               name="password"
-              rules={[{ required: true, message: "Пожалуйста, введите пароль!" }]}
+              rules={[
+                { required: true, message: "Пожалуйста, введите пароль!" },
+              ]}
             >
-              <Input.Password />
+              <Input.Password size="large" />
             </Form.Item>
 
             <Form.Item>
-              <Button type="primary" htmlType="submit">
-                Войти
-              </Button>
+              <Space
+                size={10}
+                direction={lg ? "horizontal" : "vertical"}
+                style={{
+                  display: "flex",
+                }}
+              >
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  size="large"
+                  style={{ width: lg ? undefined : "100%" }}
+                >
+                  Войти
+                </Button>
+                <Button
+                  type="default"
+                  htmlType="button"
+                  onClick={() => {
+                    navigate("/register");
+                  }}
+                  size="large"
+                  style={{ width: lg ? undefined : "100%" }}
+                >
+                  На страницу регистрации
+                </Button>
+              </Space>
             </Form.Item>
           </Form>
         ),
