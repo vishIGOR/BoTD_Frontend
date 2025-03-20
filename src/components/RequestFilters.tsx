@@ -55,10 +55,10 @@ export const RequestFilters = memo(function RequestFilters({
       <RangePicker
         onChange={(dates) =>
           onDateFilterChange(
-            dates
-              ? [dates[0].format("YYYY-MM-DD"), dates[1].format("YYYY-MM-DD")]
-              : null
-          )
+          dates
+            ? [dates[0].format("YYYY-MM-DD"), dates[1].format("YYYY-MM-DD")]
+            : null
+        )
         }
         style={{ width: "100%" }}
         size="large"
