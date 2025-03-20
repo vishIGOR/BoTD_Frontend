@@ -1,9 +1,8 @@
-const POSSIBLE_ROLES = ["STUDENT", "TEACHER", "ADMIN", "DEAN"] as const;
+import { Role } from "./Role";
 
-type PossibleRolesType = typeof POSSIBLE_ROLES;
-
-export type Role = PossibleRolesType[number];
-
-export const isRole = (value: string): value is Role => {
-  return POSSIBLE_ROLES.includes(value as Role);
-};
+export interface UserProfile {
+  id: string;
+  name: string;
+  login: string;
+  role: Role;
+}

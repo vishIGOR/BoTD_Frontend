@@ -1,11 +1,11 @@
-import { Button, Form, Grid, Input, Select, Space, message } from "antd";
+import { Button, Form, Grid, Input, message, Select, Space } from "antd";
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import formStyles from "../commonStyles/forms.module.css";
 import AuthPageSceleton from "../components/AuthPageSceleton";
 import NavbarLinkButton from "../components/NavbarLinkButton";
-import formStyles from "../commonStyles/forms.module.css";
+import { isRole, Role } from "../models/Role";
 import { register } from "../utils/requests";
-import { isRole, Role } from "../models/User";
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
@@ -20,14 +20,15 @@ const Register: React.FC = () => {
   }) => {
     console.log("Received values:", values);
 
-    if (!isRole(values.role) ) {
+    if (!isRole(values.role)) {
       return;
     }
-    
-    const tokenData = await register({...values, role: values.role as Role});
 
-    console.log(tokenData);
-    navigate("/");
+    register({ ...values, role: values.role as Role })
+      .then(() => navigate("/"))
+      .catch(() => {
+        message.error("Произошла ошибка при отправке запроса к серверу");
+      });
   };
 
   return (

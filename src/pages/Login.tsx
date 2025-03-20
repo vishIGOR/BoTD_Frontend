@@ -4,16 +4,21 @@ import { useNavigate } from "react-router-dom";
 import AuthPageSceleton from "../components/AuthPageSceleton";
 import NavbarLinkButton from "../components/NavbarLinkButton";
 import formStyles from "../commonStyles/forms.module.css";
+import { login } from "../utils/requests";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
 
   const { lg } = Grid.useBreakpoint();
 
-  const onFinish = (values: { username: string; password: string }) => {
+  const onFinish = (values: { login: string; password: string }) => {
     console.log("Received values:", values);
-    message.success("Вход выполнен успешно!");
-    navigate("/");
+
+    login({ ...values })
+      .then(() => navigate("/"))
+      .catch(() => {
+        message.error("Произошла ошибка при отправке запроса к серверу");
+      });
   };
 
   return (
@@ -32,7 +37,7 @@ const Login: React.FC = () => {
           <Form onFinish={onFinish} className={formStyles.auth_form}>
             <Form.Item
               label="Логин"
-              name="username"
+              name="login"
               rules={[
                 { required: true, message: "Пожалуйста, введите логин!" },
               ]}
