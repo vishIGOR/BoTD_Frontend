@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import formStyles from "../commonStyles/forms.module.css";
 import AuthPageSceleton from "../components/AuthPageSceleton";
 import NavbarLinkButton from "../components/NavbarLinkButton";
-import { isRole } from "../models/Role";
 import { register } from "../utils/requests";
 
 const Register: React.FC = () => {
@@ -19,10 +18,6 @@ const Register: React.FC = () => {
     role: string;
   }) => {
     console.log("Received values:", values);
-
-    if (!isRole(values.role)) {
-      return;
-    }
 
     register({ ...values, role: "STUDENT" })
       .then(() => navigate("/"))
