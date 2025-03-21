@@ -1,5 +1,5 @@
 import { Group } from "../models/Group";
-import { Reason, Status } from "../models/Request";
+import { Reason, Request, Status } from "../models/Request";
 import { Role } from "../models/Role";
 import { UserProfile } from "../models/User";
 import authApi from "./authApi";
@@ -90,7 +90,7 @@ export const createRequest = async (data: {
   comment: string;
   fileInDean: boolean;
   fileUrl: string[];
-}) => {
+}): Promise<Request> => {
   if (!MAIN_BACKEND_URL) {
     throw new Error("MAIN_BACKEND_URL is not defined");
   }
@@ -100,11 +100,61 @@ export const createRequest = async (data: {
     throw new Error("No token found");
   }
 
-  return authApi.post("/request", data, {
-    headers: {
-      Authorization: `Bearer ${tokenData.token}`,
-    },
-  });
+  return mainApi
+    .post("/requests", data, {
+      headers: {
+        Authorization: `Bearer ${tokenData.token}`,
+      },
+    })
+    .then(
+      (response: {
+        data: {
+          id: string;
+          creator: {
+            id: string;
+            name: string;
+            login: string;
+            role: string;
+          };
+          moderator: {
+            id: string;
+            name: string;
+            login: string;
+            role: string;
+          } | null;
+          dateStart: string;
+          dateEnd: string;
+          createdAt: string;
+          reason: Reason;
+          status: Status;
+          comment: string;
+          fileInDean: boolean;
+          files: { id: string }[];
+          groupNumber: string | null;
+        };
+      }) => {
+        const request = response.data;
+        return {
+          ...request,
+          creator: {
+            ...request.creator,
+            role: request.creator.role as Role,
+          },
+          moderator: request.moderator
+            ? {
+                ...request.moderator,
+                role: request.moderator.role as Role,
+              }
+            : null,
+          createdAt: new Date(request.createdAt),
+          dateStart: new Date(request.dateStart),
+          dateEnd: new Date(request.dateEnd),
+        };
+      }
+    )
+    .catch((error) => {
+      return Promise.reject(error);
+    });
 };
 
 export const getRequests = async (queryParams: {
@@ -114,7 +164,7 @@ export const getRequests = async (queryParams: {
   status?: Status;
   reason?: Reason;
   groupNumber?: number;
-}) => {
+}): Promise<Request[]> => {
   if (!MAIN_BACKEND_URL) {
     throw new Error("MAIN_BACKEND_URL is not defined");
   }
@@ -124,12 +174,233 @@ export const getRequests = async (queryParams: {
     throw new Error("No token found");
   }
 
-  return authApi.get("/requests", {
+  return mainApi
+    .get("/requests", {
+      headers: {
+        Authorization: `Bearer ${tokenData.token}`,
+      },
+      params: queryParams,
+    })
+    .then(
+      (response: {
+        data: {
+          id: string;
+          creator: {
+            id: string;
+            name: string;
+            login: string;
+            role: string;
+          };
+          moderator: {
+            id: string;
+            name: string;
+            login: string;
+            role: string;
+          } | null;
+          dateStart: string;
+          dateEnd: string;
+          createdAt: string;
+          reason: Reason;
+          status: Status;
+          comment: string;
+          fileInDean: boolean;
+          files: { id: string }[];
+          groupNumber: string | null;
+        }[];
+      }) => {
+        return response?.data?.map((request) => {
+          return {
+            ...request,
+            creator: {
+              ...request.creator,
+              role: request.creator.role as Role,
+            },
+            moderator: request.moderator
+              ? {
+                  ...request.moderator,
+                  role: request.moderator.role as Role,
+                }
+              : null,
+            createdAt: new Date(request.createdAt),
+            dateStart: new Date(request.dateStart),
+            dateEnd: new Date(request.dateEnd),
+          };
+        });
+      }
+    )
+    .catch((error) => {
+      return Promise.reject(error);
+    });
+};
+
+export const editRequest = async (
+  requestId: string,
+  data: {
+    creatorId: string;
+    dateStart: Date;
+    dateEnd: Date;
+    comment: string;
+    status: Status;
+    reason: Reason;
+    fileInDean: boolean;
+  }
+) => {
+  if (!MAIN_BACKEND_URL) {
+    throw new Error("MAIN_BACKEND_URL is not defined");
+  }
+
+  const tokenData = getTokenData();
+  if (!tokenData) {
+    throw new Error("No token found");
+  }
+
+  return mainApi.put(`/requests/${requestId}`, data, {
     headers: {
+      "Content-Type": "application/json",
       Authorization: `Bearer ${tokenData.token}`,
     },
-    params: queryParams,
   });
+};
+
+export const exportRequests = async (queryParams: {
+  dataStart?: Date;
+  dataEnd?: Date;
+  name?: string;
+  status?: Status;
+  reason?: Reason;
+  groupNumber?: number;
+}): Promise<Blob> => {
+  if (!MAIN_BACKEND_URL) {
+    throw new Error("MAIN_BACKEND_URL is not defined");
+  }
+
+  const tokenData = getTokenData();
+  if (!tokenData) {
+    throw new Error("No token found");
+  }
+
+  return mainApi
+    .get("/requests/export", {
+      headers: {
+        Authorization: `Bearer ${tokenData.token}`,
+      },
+      params: queryParams,
+      responseType: "blob", // To handle binary data (zip file)
+    })
+    .then((response: { data: Blob }) => {
+      return response.data;
+    })
+    .catch((error) => {
+      return Promise.reject(error);
+    });
+};
+
+export const getUserRequests = async (
+  userId: string,
+  queryParams: {
+    dataStart?: Date;
+    dataEnd?: Date;
+    status?: Status;
+  }
+): Promise<Request[]> => {
+  if (!MAIN_BACKEND_URL) {
+    throw new Error("MAIN_BACKEND_URL is not defined");
+  }
+
+  const tokenData = getTokenData();
+  if (!tokenData) {
+    throw new Error("No token found");
+  }
+
+  return mainApi
+    .get(`/requests/users/${userId}`, {
+      headers: {
+        Authorization: `Bearer ${tokenData.token}`,
+      },
+      params: queryParams,
+    })
+    .then(
+      (response: {
+        data: {
+          id: string;
+          creator: {
+            id: string;
+            name: string;
+            login: string;
+            role: string;
+          };
+          moderator: {
+            id: string;
+            name: string;
+            login: string;
+            role: string;
+          } | null;
+          dateStart: string;
+          dateEnd: string;
+          createdAt: string;
+          reason: Reason;
+          status: Status;
+          comment: string;
+          fileInDean: boolean;
+          files: { id: string }[];
+          groupNumber: string | null;
+        }[];
+      }) => {
+        return response?.data?.map((request) => {
+          return {
+            ...request,
+            creator: {
+              ...request.creator,
+              role: request.creator.role as Role,
+            },
+            moderator: request.moderator
+              ? {
+                  ...request.moderator,
+                  role: request.moderator.role as Role,
+                }
+              : null,
+            createdAt: new Date(request.createdAt),
+            dateStart: new Date(request.dateStart),
+            dateEnd: new Date(request.dateEnd),
+          };
+        });
+      }
+    )
+    .catch((error) => {
+      return Promise.reject(error);
+    });
+};
+
+export const exportUserRequests = async (
+  userId: string,
+  queryParams: {
+    dataStart?: Date;
+    dataEnd?: Date;
+  }
+): Promise<Blob> => {
+  if (!MAIN_BACKEND_URL) {
+    throw new Error("MAIN_BACKEND_URL is not defined");
+  }
+
+  const tokenData = getTokenData();
+  if (!tokenData) {
+    throw new Error("No token found");
+  }
+
+  return mainApi
+    .get(`/requests/${userId}/export`, {
+      headers: {
+        Authorization: `Bearer ${tokenData.token}`,
+      },
+      params: queryParams,
+      responseType: "blob", // To handle binary data (zip file)
+    })
+    .then((response: { data: Blob }) => {
+      return response.data;
+    })
+    .catch((error) => {
+      return Promise.reject(error);
+    });
 };
 
 export const getGroups = async (): Promise<Group[]> => {
@@ -142,7 +413,7 @@ export const getGroups = async (): Promise<Group[]> => {
     throw new Error("No token found");
   }
 
-  return authApi
+  return mainApi
     .get("/groups", {
       headers: {
         Authorization: `Bearer ${tokenData.token}`,
@@ -195,14 +466,14 @@ export const createGroup = async (data: {
     throw new Error("No token found");
   }
 
-  return authApi.post("/groups", data, {
+  return mainApi.post("/groups", data, {
     headers: {
       Authorization: `Bearer ${tokenData.token}`,
     },
   });
 };
 
-export const uploadRequestFiles = async (requestId: string, files: File[]) => {
+export const uploadDocuments = async (requestId: string, files: File[]) => {
   if (!MAIN_BACKEND_URL) {
     throw new Error("MAIN_BACKEND_URL is not defined");
   }
@@ -217,114 +488,9 @@ export const uploadRequestFiles = async (requestId: string, files: File[]) => {
     formData.append("file", file);
   });
 
-  return mainApi.post(`/v1/requests/upload/${requestId}`, formData, {
+  return mainApi.post(`/requests/upload/${requestId}`, formData, {
     headers: {
       "Content-Type": "multipart/form-data",
-      Authorization: `Bearer ${tokenData.token}`,
-    },
-  });
-};
-
-export const exportRequests = async (queryParams: {
-  dataStart?: Date;
-  dataEnd?: Date;
-  name?: string;
-  status?: Status;
-  reason?: Reason;
-  groupNumber?: number;
-}) => {
-  if (!MAIN_BACKEND_URL) {
-    throw new Error("MAIN_BACKEND_URL is not defined");
-  }
-
-  const tokenData = getTokenData();
-  if (!tokenData) {
-    throw new Error("No token found");
-  }
-
-  return mainApi.get("/v1/requests/export", {
-    headers: {
-      Authorization: `Bearer ${tokenData.token}`,
-    },
-    params: queryParams,
-    responseType: "blob", // To handle binary data (zip file)
-  });
-};
-
-export const getUserRequests = async (
-  userId: string,
-  queryParams: {
-    dataStart?: Date;
-    dataEnd?: Date;
-    status?: Status;
-  }
-) => {
-  if (!MAIN_BACKEND_URL) {
-    throw new Error("MAIN_BACKEND_URL is not defined");
-  }
-
-  const tokenData = getTokenData();
-  if (!tokenData) {
-    throw new Error("No token found");
-  }
-
-  return mainApi.get(`/v1/requests/users/${userId}`, {
-    headers: {
-      Authorization: `Bearer ${tokenData.token}`,
-    },
-    params: queryParams,
-  });
-};
-
-export const exportUserRequests = async (
-  userId: string,
-  queryParams: {
-    dataStart?: Date;
-    dataEnd?: Date;
-  }
-) => {
-  if (!MAIN_BACKEND_URL) {
-    throw new Error("MAIN_BACKEND_URL is not defined");
-  }
-
-  const tokenData = getTokenData();
-  if (!tokenData) {
-    throw new Error("No token found");
-  }
-
-  return mainApi.get(`/v1/requests/${userId}/export`, {
-    headers: {
-      Authorization: `Bearer ${tokenData.token}`,
-    },
-    params: queryParams,
-    responseType: "blob", // To handle binary data (zip file)
-  });
-};
-
-export const updateRequestStatus = async (
-  requestId: string,
-  data: {
-    creatorId: string;
-    dateStart: Date;
-    dateEnd: Date;
-    comment: string;
-    status: Status;
-    reason: Reason;
-    fileInDean: boolean;
-  }
-) => {
-  if (!MAIN_BACKEND_URL) {
-    throw new Error("MAIN_BACKEND_URL is not defined");
-  }
-
-  const tokenData = getTokenData();
-  if (!tokenData) {
-    throw new Error("No token found");
-  }
-
-  return mainApi.put(`/v1/requests/${requestId}`, data, {
-    headers: {
-      "Content-Type": "application/json",
       Authorization: `Bearer ${tokenData.token}`,
     },
   });
@@ -344,7 +510,7 @@ export const getUsers = async (queryParams: {
     throw new Error("No token found");
   }
 
-  return mainApi.get("/v1/users", {
+  return mainApi.get("/users", {
     headers: {
       Authorization: `Bearer ${tokenData.token}`,
     },
@@ -363,7 +529,7 @@ export const updateUserRole = async (userId: string, role: Role) => {
   }
 
   return mainApi.patch(
-    `/v1/users/${userId}`,
+    `/users/${userId}`,
     { role },
     {
       headers: {

@@ -1,124 +1,67 @@
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
-  DeleteOutlined,
   EditOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
-import {
-  Button,
-  Collapse,
-  DatePicker,
-  Input,
-  message,
-  Pagination,
-  Tag,
-} from "antd";
-import dayjs from "dayjs";
-import { useState } from "react";
+import { Button, Collapse, message, Pagination, Tag } from "antd";
+import { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
-import { Request } from "../models/Request";
+import { useUserProfileContext } from "../context/UserProfileContext";
+import { reasonToString, Request, statusToString } from "../models/Request";
+import {
+  editRequest,
+  exportRequests,
+  exportUserRequests,
+  getRequests,
+  getUserRequests,
+} from "../utils/requests";
 import ControlMenu from "./ControlMenu";
+import EditRequestForm from "./EditRequestForm";
 import { RequestFilters } from "./RequestFilters";
+import UploadDocumentsForm from "./UploadDocumentsForm";
 
 const { Panel } = Collapse;
 const PAGE_SIZE = 5;
 
-const initialRequests: Request[] = [
-  {
-    id: "101",
-    fullName: "Иван Иванов",
-    groupNumber: "Б01-123",
-    reason: "Болезнь",
-    date: "2024-03-01",
-    createdAt: "2024-02-25",
-    status: "На проверке",
-    document: "spravka.pdf",
-  },
-  {
-    id: "102",
-    fullName: "Мария Смирнова",
-    groupNumber: "Б02-456",
-    reason: "Семейные обстоятельства",
-    date: "2024-02-25",
-    createdAt: "2024-02-20",
-    status: "Одобрено",
-  },
-  {
-    id: "103",
-    fullName: "Алексей Кузнецов",
-    groupNumber: "Б03-789",
-    reason: "Командировка",
-    date: "2024-02-20",
-    createdAt: "2024-02-10",
-    status: "Отклонено",
-    document: "komandirovka.pdf",
-  },
-  {
-    id: "104",
-    fullName: "Анна Петрова",
-    groupNumber: "Б04-321",
-    reason: "Соревнования",
-    date: "2024-02-18",
-    createdAt: "2024-02-15",
-    status: "На проверке",
-  },
-  {
-    id: "105",
-    fullName: "Дмитрий Орлов",
-    groupNumber: "Б01-123",
-    reason: "Семинар",
-    date: "2024-02-28",
-    createdAt: "2024-02-22",
-    status: "Одобрено",
-    document: "seminar.pdf",
-  },
-  {
-    id: "106",
-    fullName: "Ольга Сидорова",
-    groupNumber: "Б02-456",
-    reason: "Семейные обстоятельства",
-    date: "2024-03-03",
-    createdAt: "2024-02-27",
-    status: "На проверке",
-  },
-  {
-    id: "107",
-    fullName: "Василий Козлов",
-    groupNumber: "Б03-789",
-    reason: "Спортивные сборы",
-    date: "2024-02-26",
-    createdAt: "2024-02-21",
-    status: "Отклонено",
-    document: "sports.pdf",
-  },
-  {
-    id: "108",
-    fullName: "Екатерина Белова",
-    groupNumber: "Б05-999",
-    reason: "Олимпиада",
-    date: "2024-03-10",
-    createdAt: "2024-03-01",
-    status: "На проверке",
-  },
-  {
-    id: "109",
-    fullName: "Петр Семенов",
-    groupNumber: "Б06-777",
-    reason: "Конференция",
-    date: "2024-03-12",
-    createdAt: "2024-03-02",
-    status: "Одобрено",
-  },
-];
-
 const RequestCollapseList = () => {
-  const [requests, setRequests] = useState<Request[]>(initialRequests);
+  const [requests, setRequests] = useState<Request[]>([]);
+  const [isEditingModalOpen, setIsEditingModalOpen] = useState(false);
   const [editingRequest, setEditingRequest] = useState<Request | null>(null);
+  const [isUploadingFormOpem, setIsUploadingFormOpen] = useState(false);
+  const [uploadingRequestId, setUploadingRequestId] = useState<string | null>(
+    null
+  );
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [groupFilter, setGroupFilter] = useState<string | null>(null);
   const [searchName, setSearchName] = useState<string>("");
-  const [dateFilter, setDateFilter] = useState<[string, string] | null>(null);
+  const [dateFilter, setDateFilter] = useState<
+    [Date | null, Date | null] | null
+  >(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [exportDownloading, setExportDownloading] = useState(false);
+
+  const { userProfile } = useUserProfileContext();
+
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        if (userProfile.role === "STUDENT") {
+          getUserRequests(userProfile.id, {}).then((response) => {
+            setRequests(response);
+          });
+        } else {
+          getRequests({}).then((response) => {
+            setRequests(response);
+          });
+        }
+      } catch {
+        message.error("Ошибка при получении запросов");
+      }
+    };
+
+    fetchRequests();
+  }, []);
 
   // Фильтрация
   const filteredRequests = requests
@@ -127,12 +70,10 @@ const RequestCollapseList = () => {
     .filter(
       (req) =>
         !searchName ||
-        req.fullName.toLowerCase().includes(searchName.toLowerCase())
+        req.creator.name.toLowerCase().includes(searchName.toLowerCase())
     )
-    .filter(
-      (req) =>
-        !dateFilter || (req.date >= dateFilter[0] && req.date <= dateFilter[1])
-    );
+    .filter((req) => (dateFilter?.[0] ? req.dateStart >= dateFilter[0] : true))
+    .filter((req) => (dateFilter?.[1] ? req.dateEnd <= dateFilter[1] : true));
 
   const paginatedRequests = filteredRequests.slice(
     (currentPage - 1) * PAGE_SIZE,
@@ -140,189 +81,264 @@ const RequestCollapseList = () => {
   );
 
   // Обновление заявки
-  const updateRequest = (id: string, updatedData: Partial<Request>) => {
+  const editRequestLocally = (id: string, updatedData: Partial<Request>) => {
     setRequests((prev) =>
       prev.map((req) => (req.id === id ? { ...req, ...updatedData } : req))
     );
-    message.success("Заявка обновлена!");
     setEditingRequest(null);
-  };
-
-  // Удаление
-  const deleteRequest = (id: string) => {
-    setRequests((prev) => prev.filter((req) => req.id !== id));
-    message.success("Заявка удалена!");
   };
 
   // Одобрение
   const confirmRequest = (id: string) => {
-    updateRequest(id, { status: "Одобрено" });
-    message.success("Заявка одобрена!");
+    const request = requests.find((req) => req.id === id);
+
+    if (!request) {
+      message.error("Заявка не найдена");
+      return;
+    }
+
+    try {
+      editRequest(id, {
+        ...request,
+        status: "APPROVED",
+        creatorId: request.creator.id,
+      });
+    } catch {
+      message.error("Не удалось одобрить заявку");
+      return;
+    }
+    editRequestLocally(id, { status: "APPROVED" });
+    message.success("Заявка одобрена");
   };
 
   // Отклонение
   const rejectRequest = (id: string) => {
-    updateRequest(id, { status: "Отклонено" });
-    message.error("Заявка отклонена!");
+    const request = requests.find((req) => req.id === id);
+
+    if (!request) {
+      message.error("Заявка не найдена");
+      return;
+    }
+
+    try {
+      editRequest(id, {
+        ...request,
+        status: "DECLINED",
+        creatorId: request.creator.id,
+      });
+    } catch {
+      message.error("Не удалось отклонить заявку");
+      return;
+    }
+    editRequestLocally(id, { status: "DECLINED" });
+    message.success("Заявка отклонена");
   };
 
   // Экспорт
-  const exportFilteredRequests = () => {
-    if (filteredRequests.length === 0) {
-      message.warning("Нет данных для экспорта!");
-      return;
+  const exportFilteredRequests = async () => {
+    // if (filteredRequests.length === 0) {
+    //   message.warning("Нет данных для экспорта!");
+    //   return;
+    // }
+    // const worksheet = XLSX.utils.json_to_sheet(filteredRequests);
+    // const workbook = XLSX.utils.book_new();
+    // XLSX.utils.book_append_sheet(workbook, worksheet, "Filtered Requests");
+    // XLSX.writeFile(workbook, "filtered_requests.xlsx");
+    // message.success("Фильтрованный список пропусков экспортирован!");
+
+    setExportDownloading(true);
+    try {
+
+      let file: Blob|null = null;
+      if (userProfile.role === "STUDENT") {
+        file = await exportUserRequests(userProfile.id, {});
+      } else {
+        file = await exportRequests({});
+      }
+      
+      console.log("file", file);
+      const url = URL.createObjectURL(file);
+
+      // Create a hidden anchor element
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "Документы_заявок";
+      document.body.appendChild(link);
+
+      link.click();
+
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch {
+      message.error("Произошла ошибка при экспорте");
     }
-    const worksheet = XLSX.utils.json_to_sheet(filteredRequests);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Filtered Requests");
-    XLSX.writeFile(workbook, "filtered_requests.xlsx");
-    message.success("Фильтрованный список пропусков экспортирован!");
+    finally{
+      setExportDownloading(false);
+    }
   };
 
   return (
-    <div>
-      {/* Верхняя часть: Фильтры и кнопки */}
-      <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
-        <RequestFilters
-          onStatusFilterChange={setStatusFilter}
-          onGroupFilterChange={setGroupFilter}
-          onSearchNameChange={setSearchName}
-          onDateFilterChange={setDateFilter}
-        />
-        <ControlMenu
-          onExportClick={exportFilteredRequests}
-          onCreateClick={() => console.log("Open modal for new request")}
-        />
-      </div>
-
-      {/* Список заявок */}
-      <Collapse accordion>
-        {paginatedRequests.map((req) => (
-          <Panel
-            key={req.id}
-            header={`${req.fullName} (${req.groupNumber}) - ${req.reason}`}
-            extra={
-              <Tag
-                color={
-                  req.status === "Одобрено"
-                    ? "green"
-                    : req.status === "Отклонено"
-                    ? "red"
-                    : "orange"
-                }
-              >
-                {req.status}
-              </Tag>
+    <>
+      <div>
+        {/* Верхняя часть: Фильтры и кнопки */}
+        <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+          <RequestFilters
+            onStatusFilterChange={setStatusFilter}
+            onGroupFilterChange={setGroupFilter}
+            onSearchNameChange={setSearchName}
+            onDateFilterChange={setDateFilter}
+          />
+          <ControlMenu
+            onExportClick={exportFilteredRequests}
+            onCreateCallback={(request: Request) =>
+              setRequests([...requests, request])
             }
-          >
-            {editingRequest && editingRequest.id === req.id ? (
-              <>
-                <Input
-                  defaultValue={req.reason}
-                  onChange={(e) =>
-                    setEditingRequest({
-                      ...editingRequest,
-                      reason: e.target.value,
-                    })
+            exportDownloading={exportDownloading}
+          />
+        </div>
+
+        {/* Список заявок */}
+        <Collapse accordion>
+          {paginatedRequests.map((req) => (
+            <Panel
+              key={req.id}
+              header={`${req.creator.name} - ${reasonToString(req.reason)}`}
+              extra={
+                <Tag
+                  color={
+                    req.status === "APPROVED"
+                      ? "green"
+                      : req.status === "DECLINED"
+                      ? "red"
+                      : "orange"
                   }
-                  style={{ marginBottom: 10 }}
-                  size="large"
-                />
-                <DatePicker
-                  defaultValue={dayjs(req.date)}
-                  onChange={(date) =>
-                    setEditingRequest({
-                      ...editingRequest,
-                      date: date?.format("YYYY-MM-DD") || req.date,
-                    })
-                  }
-                  style={{ marginBottom: 10 }}
-                  size="large"
-                />
-                <Button
-                  type="primary"
-                  onClick={() => updateRequest(req.id, editingRequest)}
-                  size="large"
                 >
-                  Сохранить
-                </Button>
-                <Button
-                  onClick={() => setEditingRequest(null)}
-                  style={{ marginLeft: 8 }}
-                  size="large"
-                >
-                  Отмена
-                </Button>
-              </>
-            ) : (
+                  {statusToString(req.status)}
+                </Tag>
+              }
+            >
               <>
                 <p>
-                  <b>Дата пропуска:</b> {req.date}
+                  <b>Описание:</b> {req.comment}
                 </p>
                 <p>
-                  <b>Дата создания:</b> {req.createdAt}
+                  <b>Дата пропуска:</b>
+                  {` ${req.dateStart.toLocaleDateString()} - ${req.dateEnd.toLocaleDateString()}`}
                 </p>
                 <p>
-                  <b>Документ:</b>{" "}
-                  {req.document ? (
-                    <a href={`#${req.document}`} download>
-                      {req.document}
-                    </a>
-                  ) : (
-                    "Нет"
-                  )}
+                  <b>Дата создания:</b> {req.createdAt.toLocaleDateString()}
                 </p>
+                <p>
+                  <b>Документы в деканате:</b> {req.fileInDean ? "Да" : "Нет"}
+                </p>
+                {/* <p>
+                  <b>Документы:</b>{" "} */}
+                {/* {req.document ? (
+                <a href={`#${req.document}`} download>
+                  {req.document}
+                </a>
+              ) : (
+                "Нет"
+              )} */}
+                {/* </p> */}
+                {req.moderator && (
+                  <p>
+                    <b>Вердикт пользователя:</b> {req.moderator.name}
+                  </p>
+                )}
 
                 <Button
                   icon={<EditOutlined />}
-                  onClick={() => setEditingRequest(req)}
-                  style={{ marginRight: 8 }}
+                  onClick={async () => {
+                    setEditingRequest(req);
+                    setTimeout(() => {
+                      setIsEditingModalOpen(true);
+                    }, 0);
+                  }}
+                  style={{ marginRight: 8, marginBottom: 8 }}
                   size="large"
                 >
-                  Редактировать
+                  Редактировать общие данные
                 </Button>
                 <Button
-                  icon={<DeleteOutlined />}
-                  danger
-                  onClick={() => deleteRequest(req.id)}
-                  style={{ marginRight: 8 }}
+                  icon={<UploadOutlined />}
+                  onClick={async () => {
+                    setUploadingRequestId(req.id);
+                    setTimeout(() => {
+                      setIsUploadingFormOpen(true);
+                    }, 0);
+                  }}
+                  style={{ marginRight: 8, marginBottom: 8 }}
                   size="large"
                 >
-                  Удалить
+                  Прикрепить документы
                 </Button>
-                <Button
-                  icon={<CheckCircleOutlined />}
-                  type="primary"
-                  onClick={() => confirmRequest(req.id)}
-                  style={{ marginRight: 8 }}
-                  size="large"
-                >
-                  Одобрить
-                </Button>
-                <Button
-                  icon={<CloseCircleOutlined />}
-                  type="default"
-                  danger
-                  onClick={() => rejectRequest(req.id)}
-                  size="large"
-                >
-                  Отклонить
-                </Button>
+                {(userProfile.role === "ADMIN" ||
+                  userProfile.role === "DEAN") && (
+                  <>
+                    <Button
+                      icon={<CheckCircleOutlined />}
+                      type="primary"
+                      onClick={() => confirmRequest(req.id)}
+                      style={{ marginRight: 8, marginBottom: 8 }}
+                      size="large"
+                    >
+                      Одобрить
+                    </Button>
+                    <Button
+                      icon={<CloseCircleOutlined />}
+                      type="default"
+                      danger
+                      onClick={() => rejectRequest(req.id)}
+                      style={{ marginRight: 8, marginBottom: 8 }}
+                      size="large"
+                    >
+                      Отклонить
+                    </Button>
+                  </>
+                )}
               </>
-            )}
-          </Panel>
-        ))}
-      </Collapse>
+            </Panel>
+          ))}
+        </Collapse>
 
-      {/* Пагинация */}
-      <Pagination
-        current={currentPage}
-        total={filteredRequests.length}
-        pageSize={PAGE_SIZE}
-        onChange={setCurrentPage}
-        style={{ marginTop: 16, textAlign: "center" }}
-      />
-    </div>
+        {/* Пагинация */}
+        <Pagination
+          current={currentPage}
+          total={filteredRequests.length}
+          pageSize={PAGE_SIZE}
+          onChange={setCurrentPage}
+          style={{ marginTop: 16, textAlign: "center" }}
+        />
+      </div>
+      {editingRequest && (
+        <EditRequestForm
+          isModalOpen={isEditingModalOpen}
+          setIsModalOpen={setIsEditingModalOpen}
+          request={editingRequest}
+          onEditCallback={(request: Request) => {
+            setEditingRequest(null);
+            setIsEditingModalOpen(false);
+            setRequests((prev) =>
+              prev.map((oldRequest) =>
+                oldRequest.id === request.id ? request : oldRequest
+              )
+            );
+          }}
+        />
+      )}
+      {uploadingRequestId && (
+        <UploadDocumentsForm
+          isModalOpen={isUploadingFormOpem}
+          setIsModalOpen={setIsUploadingFormOpen}
+          requestId={uploadingRequestId}
+          onUploadCallback={() => {
+            setUploadingRequestId(null);
+            setIsUploadingFormOpen(false);
+          }}
+        />
+      )}
+    </>
   );
 };
 

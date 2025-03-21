@@ -2,14 +2,20 @@ import { Button } from "antd";
 import { FileExcelOutlined, PlusOutlined } from "@ant-design/icons";
 import CreateRequestModal from "./CreateRequestForm";
 import { useState } from "react";
+import { Request } from "../models/Request";
+import { useUserProfileContext } from "../context/UserProfileContext";
 
-interface ControlMenuProps {
+const ControlMenu = ({
+  onExportClick,
+  onCreateCallback,
+  exportDownloading,
+}: {
   onExportClick: () => void;
-  onCreateClick: () => void;
-}
-
-const ControlMenu = ({ onExportClick, onCreateClick }: ControlMenuProps) => {
+  onCreateCallback: (request: Request) => void;
+  exportDownloading: boolean;
+}) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { userProfile } = useUserProfileContext();
 
   return (
     <>
@@ -29,24 +35,33 @@ const ControlMenu = ({ onExportClick, onCreateClick }: ControlMenuProps) => {
           icon={<PlusOutlined />}
           onClick={() => {
             setIsModalOpen(true);
-            onCreateClick();
           }}
           size="large"
+          style={{
+            height:
+              userProfile.role === "STUDENT" || userProfile.role === "DEAN"
+                ? 40
+                : 90,
+          }}
         >
           Создать заявку
         </Button>
-        <Button
-          type="primary"
-          icon={<FileExcelOutlined />}
-          onClick={onExportClick}
-          size="large"
-        >
-          Экспорт всех заявок
-        </Button>
+        {userProfile.role === "DEAN" && (
+          <Button
+            type="primary"
+            icon={<FileExcelOutlined />}
+            onClick={onExportClick}
+            size="large"
+            loading={exportDownloading}
+          >
+            Экспорт всех заявок
+          </Button>
+        )}
       </div>
       <CreateRequestModal
         isModalOpen={isModalOpen}
         setIsModalOpen={setIsModalOpen}
+        onCreateCallback={onCreateCallback}
       />
     </>
   );
