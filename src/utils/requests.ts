@@ -455,7 +455,7 @@ export const getGroups = async (): Promise<Group[]> => {
 
 export const createGroup = async (data: {
   number: number;
-  students: { id: string }[];
+  students: string[];
 }) => {
   if (!MAIN_BACKEND_URL) {
     throw new Error("MAIN_BACKEND_URL is not defined");

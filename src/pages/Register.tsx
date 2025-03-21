@@ -1,10 +1,10 @@
-import { Button, Form, Grid, Input, message, Select, Space } from "antd";
+import { Button, Form, Grid, Input, message, Space } from "antd";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import formStyles from "../commonStyles/forms.module.css";
 import AuthPageSceleton from "../components/AuthPageSceleton";
 import NavbarLinkButton from "../components/NavbarLinkButton";
-import { isRole, Role } from "../models/Role";
+import { isRole } from "../models/Role";
 import { register } from "../utils/requests";
 
 const Register: React.FC = () => {
@@ -24,7 +24,7 @@ const Register: React.FC = () => {
       return;
     }
 
-    register({ ...values, role: values.role as Role })
+    register({ ...values, role: "STUDENT" })
       .then(() => navigate("/"))
       .catch(() => {
         message.error("Произошла ошибка при отправке запроса к серверу");
@@ -71,19 +71,6 @@ const Register: React.FC = () => {
               ]}
             >
               <Input.Password size="large" />
-            </Form.Item>
-
-            <Form.Item
-              label="Роль"
-              name="role"
-              rules={[
-                { required: true, message: "Пожалуйста, выберите роль!" },
-              ]}
-            >
-              <Select size="large">
-                <Select.Option value="STUDENT">Студент</Select.Option>
-                <Select.Option value="TEACHER">Преподаватель</Select.Option>
-              </Select>
             </Form.Item>
 
             <Form.Item>

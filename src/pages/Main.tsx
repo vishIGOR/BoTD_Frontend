@@ -17,7 +17,9 @@ function Main() {
         leftButtons: (
           <>
             <NavbarLinkButton path="/">Заявки</NavbarLinkButton>
-            {(userProfile.role === "ADMIN" || userProfile.role === "DEAN") && (
+            {(userProfile.role === "ADMIN" ||
+              userProfile.role === "DEAN" ||
+              userProfile.role === "TEACHER") && (
               <NavbarLinkButton path="/users">
                 Пользователи и группы
               </NavbarLinkButton>

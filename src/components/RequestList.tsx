@@ -4,7 +4,7 @@ import {
   EditOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { Button, Collapse, message, Pagination, Tag } from "antd";
+import { Button, Collapse, message, Pagination, Skeleton, Tag } from "antd";
 import { useEffect, useState } from "react";
 import { useUserProfileContext } from "../context/UserProfileContext";
 import { reasonToString, Request, statusToString } from "../models/Request";
@@ -21,9 +21,10 @@ import { RequestFilters } from "./RequestFilters";
 import UploadDocumentsForm from "./UploadDocumentsForm";
 
 const { Panel } = Collapse;
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 10;
 
 const RequestCollapseList = () => {
+  const [requestsLoading, setRequestsLoading] = useState(true);
   const [requests, setRequests] = useState<Request[]>([]);
   const [isEditingModalOpen, setIsEditingModalOpen] = useState(false);
   const [editingRequest, setEditingRequest] = useState<Request | null>(null);
@@ -48,10 +49,12 @@ const RequestCollapseList = () => {
         if (userProfile.role === "STUDENT") {
           getUserRequests(userProfile.id, {}).then((response) => {
             setRequests(response);
+            setRequestsLoading(false);
           });
         } else {
           getRequests({}).then((response) => {
             setRequests(response);
+            setRequestsLoading(false);
           });
         }
       } catch {
@@ -137,14 +140,13 @@ const RequestCollapseList = () => {
   const exportFilteredRequests = async () => {
     setExportDownloading(true);
     try {
-
-      let file: Blob|null = null;
+      let file: Blob | null = null;
       if (userProfile.role === "STUDENT") {
         file = await exportUserRequests(userProfile.id, {});
       } else {
         file = await exportRequests({});
       }
-      
+
       console.log("file", file);
       const url = URL.createObjectURL(file);
 
@@ -160,8 +162,7 @@ const RequestCollapseList = () => {
       URL.revokeObjectURL(url);
     } catch {
       message.error("Произошла ошибка при экспорте");
-    }
-    finally{
+    } finally {
       setExportDownloading(false);
     }
   };
@@ -187,99 +188,103 @@ const RequestCollapseList = () => {
         </div>
 
         {/* Список заявок */}
-        <Collapse accordion>
-          {paginatedRequests.map((req) => (
-            <Panel
-              key={req.id}
-              header={`${req.creator.name} - ${reasonToString(req.reason)}`}
-              extra={
-                <Tag
-                  color={
-                    req.status === "APPROVED"
-                      ? "green"
-                      : req.status === "DECLINED"
-                      ? "red"
-                      : "orange"
-                  }
-                >
-                  {statusToString(req.status)}
-                </Tag>
-              }
-            >
-              <>
-                <p>
-                  <b>Описание:</b> {req.comment}
-                </p>
-                <p>
-                  <b>Дата пропуска:</b>
-                  {` ${req.dateStart.toLocaleDateString()} - ${req.dateEnd.toLocaleDateString()}`}
-                </p>
-                <p>
-                  <b>Дата создания:</b> {req.createdAt.toLocaleDateString()}
-                </p>
-                <p>
-                  <b>Документы в деканате:</b> {req.fileInDean ? "Да" : "Нет"}
-                </p>
-                {req.moderator && (
+        {requestsLoading ? (
+          <Skeleton active />
+        ) : (
+          <Collapse accordion>
+            {paginatedRequests.map((req) => (
+              <Panel
+                key={req.id}
+                header={`${req.creator.name} - ${reasonToString(req.reason)}`}
+                extra={
+                  <Tag
+                    color={
+                      req.status === "APPROVED"
+                        ? "green"
+                        : req.status === "DECLINED"
+                        ? "red"
+                        : "orange"
+                    }
+                  >
+                    {statusToString(req.status)}
+                  </Tag>
+                }
+              >
+                <>
                   <p>
-                    <b>Вердикт пользователя:</b> {req.moderator.name}
+                    <b>Описание:</b> {req.comment}
                   </p>
-                )}
+                  <p>
+                    <b>Дата пропуска:</b>
+                    {` ${req.dateStart.toLocaleDateString()} - ${req.dateEnd.toLocaleDateString()}`}
+                  </p>
+                  <p>
+                    <b>Дата создания:</b> {req.createdAt.toLocaleDateString()}
+                  </p>
+                  <p>
+                    <b>Документы в деканате:</b> {req.fileInDean ? "Да" : "Нет"}
+                  </p>
+                  {req.moderator && (
+                    <p>
+                      <b>Вердикт пользователя:</b> {req.moderator.name}
+                    </p>
+                  )}
 
-                <Button
-                  icon={<EditOutlined />}
-                  onClick={async () => {
-                    setEditingRequest(req);
-                    setTimeout(() => {
-                      setIsEditingModalOpen(true);
-                    }, 0);
-                  }}
-                  style={{ marginRight: 8, marginBottom: 8 }}
-                  size="large"
-                >
-                  Редактировать общие данные
-                </Button>
-                <Button
-                  icon={<UploadOutlined />}
-                  onClick={async () => {
-                    setUploadingRequestId(req.id);
-                    setTimeout(() => {
-                      setIsUploadingFormOpen(true);
-                    }, 0);
-                  }}
-                  style={{ marginRight: 8, marginBottom: 8 }}
-                  size="large"
-                >
-                  Прикрепить документы
-                </Button>
-                {(userProfile.role === "ADMIN" ||
-                  userProfile.role === "DEAN") && (
-                  <>
-                    <Button
-                      icon={<CheckCircleOutlined />}
-                      type="primary"
-                      onClick={() => confirmRequest(req.id)}
-                      style={{ marginRight: 8, marginBottom: 8 }}
-                      size="large"
-                    >
-                      Одобрить
-                    </Button>
-                    <Button
-                      icon={<CloseCircleOutlined />}
-                      type="default"
-                      danger
-                      onClick={() => rejectRequest(req.id)}
-                      style={{ marginRight: 8, marginBottom: 8 }}
-                      size="large"
-                    >
-                      Отклонить
-                    </Button>
-                  </>
-                )}
-              </>
-            </Panel>
-          ))}
-        </Collapse>
+                  <Button
+                    icon={<EditOutlined />}
+                    onClick={async () => {
+                      setEditingRequest(req);
+                      setTimeout(() => {
+                        setIsEditingModalOpen(true);
+                      }, 0);
+                    }}
+                    style={{ marginRight: 8, marginBottom: 8 }}
+                    size="large"
+                  >
+                    Редактировать общие данные
+                  </Button>
+                  <Button
+                    icon={<UploadOutlined />}
+                    onClick={async () => {
+                      setUploadingRequestId(req.id);
+                      setTimeout(() => {
+                        setIsUploadingFormOpen(true);
+                      }, 0);
+                    }}
+                    style={{ marginRight: 8, marginBottom: 8 }}
+                    size="large"
+                  >
+                    Прикрепить документы
+                  </Button>
+                  {(userProfile.role === "ADMIN" ||
+                    userProfile.role === "DEAN") && (
+                    <>
+                      <Button
+                        icon={<CheckCircleOutlined />}
+                        type="primary"
+                        onClick={() => confirmRequest(req.id)}
+                        style={{ marginRight: 8, marginBottom: 8 }}
+                        size="large"
+                      >
+                        Одобрить
+                      </Button>
+                      <Button
+                        icon={<CloseCircleOutlined />}
+                        type="default"
+                        danger
+                        onClick={() => rejectRequest(req.id)}
+                        style={{ marginRight: 8, marginBottom: 8 }}
+                        size="large"
+                      >
+                        Отклонить
+                      </Button>
+                    </>
+                  )}
+                </>
+              </Panel>
+            ))}
+          </Collapse>
+        )}
 
         {/* Пагинация */}
         <Pagination

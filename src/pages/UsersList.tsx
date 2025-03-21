@@ -13,8 +13,8 @@ import {
   Tabs,
   Tag,
   List,
+  Divider,
 } from "antd";
-import axios from "axios";
 import { useEffect, useState } from "react";
 import MainPageSceleton from "../components/MainPageSceleton";
 import NavbarLinkButton from "../components/NavbarLinkButton";
@@ -22,6 +22,12 @@ import { useUserProfileContext } from "../context/UserProfileContext";
 import { useNavigate } from "react-router-dom";
 import { roleToString } from "../models/Role";
 import { deleteTokenData } from "../utils/storage";
+import {
+  getGroups,
+  createGroup,
+  getUsers,
+  updateUserRole,
+} from "../utils/requests"; // Import your request functions
 
 const { Option } = Select;
 
@@ -36,10 +42,8 @@ interface User {
 interface Group {
   id: string;
   number: number;
-  students: User[]; 
+  students: User[];
 }
-
-const API_URL = "https://j2fyo7-79-136-223-200.ru.tuna.am/api/v1";
 
 const UsersAndGroups = () => {
   const { userProfile } = useUserProfileContext();
@@ -50,8 +54,10 @@ const UsersAndGroups = () => {
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadingGroups, setLoadingGroups] = useState(true);
   const [newGroupNumber, setNewGroupNumber] = useState("");
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]); 
-  const token = localStorage.getItem("accessToken");
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+
+  const dangerousActionsRight =
+    userProfile.role === "ADMIN" || userProfile.role === "DEAN";
 
   useEffect(() => {
     fetchUsers();
@@ -61,19 +67,8 @@ const UsersAndGroups = () => {
   const fetchUsers = async () => {
     setLoadingUsers(true);
     try {
-      if (!token) {
-        throw new Error("Токен авторизации отсутствует.");
-      }
-
-      const response = await axios.get(`${API_URL}/users`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.data && Array.isArray(response.data)) {
-        setUsers(response.data);
-      } else {
-        throw new Error("Некорректные данные пользователей.");
-      }
+      const usersData = await getUsers({});
+      setUsers(usersData.data); // Assuming getUsers returns the data in the expected format
     } catch (error) {
       console.error("Ошибка при загрузке пользователей:", error);
       message.error("Не удалось загрузить пользователей.");
@@ -82,18 +77,12 @@ const UsersAndGroups = () => {
     }
   };
 
-  const updateUserRole = async (id: string, newRole: "STUDENT" | "ADMIN" | "DEAN" | "TEACHER") => {
+  const handleUpdateUserRole = async (
+    id: string,
+    newRole: "STUDENT" | "ADMIN" | "DEAN" | "TEACHER"
+  ) => {
     try {
-      if (!token) {
-        throw new Error("Токен авторизации отсутствует.");
-      }
-
-      await axios.patch(
-        `${API_URL}/users/${id}`,
-        { role: newRole },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
+      await updateUserRole(id, newRole);
       setUsers((prev) =>
         prev.map((user) => (user.id === id ? { ...user, role: newRole } : user))
       );
@@ -107,19 +96,8 @@ const UsersAndGroups = () => {
   const fetchGroups = async () => {
     setLoadingGroups(true);
     try {
-      if (!token) {
-        throw new Error("Токен авторизации отсутствует.");
-      }
-
-      const response = await axios.get(`${API_URL}/groups`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.data && Array.isArray(response.data)) {
-        setGroups(response.data);
-      } else {
-        throw new Error("Некорректные данные групп.");
-      }
+      const groupsData = await getGroups();
+      setGroups(groupsData);
     } catch (error) {
       console.error("Ошибка при загрузке групп:", error);
       message.error("Не удалось загрузить группы.");
@@ -128,7 +106,7 @@ const UsersAndGroups = () => {
     }
   };
 
-  const createGroup = async () => {
+  const handleCreateGroup = async () => {
     if (!newGroupNumber) {
       message.warning("Введите номер группы!");
       return;
@@ -141,48 +119,26 @@ const UsersAndGroups = () => {
     }
 
     try {
-      if (!token) {
-        throw new Error("Токен авторизации отсутствует.");
-      }
+      await createGroup({
+        number: groupNumber,
+        students: selectedUsers.map((id) => id),
+      });
 
-      const response = await axios.post(
-        `${API_URL}/groups`,
-        { number: groupNumber, students: selectedUsers },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response.status === 204) {
-        message.success("Группа создана!");
-
-  
-        const newGroup = {
-          id: Date.now().toString(), 
-          number: groupNumber,
-          students: users.filter((user) => selectedUsers.includes(user.id)), 
-        };
-        setGroups((prevGroups) => [...prevGroups, newGroup]);
-
-        setNewGroupNumber("");
-        setSelectedUsers([]);
-      } else {
-        throw new Error(`Не удалось создать группу. Код ответа: ${response.status}`);
-      }
+      message.success("Группа создана!");
+      fetchGroups(); // Refresh the groups list
+      setNewGroupNumber("");
+      setSelectedUsers([]);
     } catch (error) {
       console.error("Ошибка при создании группы:", error);
-      message.error("Не удалось создать группу. Проверьте данные и попробуйте снова.");
+      message.error(
+        "Не удалось создать группу. Проверьте данные и попробуйте снова."
+      );
     }
   };
 
-  const deleteGroup = async (id: string) => {
+  const handleDeleteGroup = async (id: string) => {
     try {
-      if (!token) {
-        throw new Error("Токен авторизации отсутствует.");
-      }
-
-      await axios.delete(`${API_URL}/groups/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
+      // await deleteGroup(id);
       message.success("Группа удалена!");
       setGroups((prevGroups) => prevGroups.filter((group) => group.id !== id));
     } catch (error) {
@@ -202,23 +158,24 @@ const UsersAndGroups = () => {
         <p>
           <b>Группа:</b> {user.groupNumber || "Нет"}
         </p>
-        {user.role === "STUDENT" ? (
-          <Button
-            type="primary"
-            icon={<UserSwitchOutlined />}
-            onClick={() => updateUserRole(user.id, "TEACHER")}
-          >
-            Назначить учителем
-          </Button>
-        ) : user.role === "TEACHER" ? (
-          <Button
-            danger
-            icon={<UserSwitchOutlined />}
-            onClick={() => updateUserRole(user.id, "STUDENT")}
-          >
-            Снять роль учителя
-          </Button>
-        ) : null}
+        {dangerousActionsRight &&
+          (user.role === "STUDENT" ? (
+            <Button
+              type="primary"
+              icon={<UserSwitchOutlined />}
+              onClick={() => handleUpdateUserRole(user.id, "TEACHER")}
+            >
+              Назначить учителем
+            </Button>
+          ) : user.role === "TEACHER" ? (
+            <Button
+              danger
+              icon={<UserSwitchOutlined />}
+              onClick={() => handleUpdateUserRole(user.id, "STUDENT")}
+            >
+              Снять роль учителя
+            </Button>
+          ) : null)}
       </>
     ),
   }));
@@ -237,13 +194,15 @@ const UsersAndGroups = () => {
             </List.Item>
           )}
         />
-        <Button
-          icon={<DeleteOutlined />}
-          danger
-          onClick={() => deleteGroup(group.id)}
-        >
-          Удалить группу
-        </Button>
+        {dangerousActionsRight && (
+          <Button
+            icon={<DeleteOutlined />}
+            danger
+            onClick={() => handleDeleteGroup(group.id)}
+          >
+            Удалить группу
+          </Button>
+        )}
       </>
     ),
   }));
@@ -268,36 +227,46 @@ const UsersAndGroups = () => {
       label: "Группы",
       children: (
         <>
-          <h1>Список групп</h1>
-          <Input
-            placeholder="Введите номер группы"
-            type="number"
-            value={newGroupNumber}
-            onChange={(e) => setNewGroupNumber(e.target.value)}
-            style={{ width: 200, marginRight: 10 }}
-          />
-          <Select
-            mode="multiple"
-            placeholder="Выберите пользователей"
-            value={selectedUsers}
-            onChange={(values) => setSelectedUsers(values)}
-            style={{ width: "100%", marginBottom: 16 }}
-          >
-            {users
-              .filter((user) => user.role === "STUDENT") 
-              .map((user) => (
-                <Option key={user.id} value={user.id}>
-                  {user.name} ({user.login})
-                </Option>
-              ))}
-          </Select>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={createGroup}
-          >
-            Создать группу
-          </Button>
+          {dangerousActionsRight && (
+            <>
+              <h2>Создать новую группу</h2>
+              <Input
+                placeholder="Введите номер группы"
+                type="number"
+                value={newGroupNumber}
+                onChange={(e) => setNewGroupNumber(e.target.value)}
+                style={{ width: "100%", marginBottom: 12 }}
+                size="large"
+              />
+              <Select
+                mode="multiple"
+                placeholder="Выберите пользователей"
+                value={selectedUsers}
+                onChange={(values) => setSelectedUsers(values)}
+                style={{ width: "100%", marginBottom: 12 }}
+                size="large"
+              >
+                {users
+                  .filter((user) => user.role === "STUDENT")
+                  .map((user) => (
+                    <Option key={user.id} value={user.id}>
+                      {user.name} ({user.login})
+                    </Option>
+                  ))}
+              </Select>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleCreateGroup}
+                size="large"
+              >
+                Создать группу
+              </Button>
+              <Divider />
+            </>
+          )}
+
+          <h2>Список групп</h2>
 
           {loadingGroups ? (
             <Spin tip="Загрузка..." size="large" fullscreen />
