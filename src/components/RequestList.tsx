@@ -4,6 +4,7 @@ import {
   EditOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
+import * as XLSX from "xlsx";
 import { Button, Collapse, message, Pagination, Skeleton, Tag } from "antd";
 import { useEffect, useState } from "react";
 import { useUserProfileContext } from "../context/UserProfileContext";
@@ -39,7 +40,9 @@ const RequestCollapseList = () => {
     [Date | null, Date | null] | null
   >(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [exportDownloading, setExportDownloading] = useState(false);
+  const [exportFilesDownloading, setExportDownloading] = useState(false);
+
+  const [exportTableDownloading, setExportTableDownloading] = useState(false);
 
   const { userProfile } = useUserProfileContext();
 
@@ -167,6 +170,30 @@ const RequestCollapseList = () => {
     }
   };
 
+  const exportRequestsTable = () => {
+    if (filteredRequests.length === 0) {
+      message.warning("Нет данных для экспорта!");
+      return;
+    }
+
+    const transformedFilteredRequests = filteredRequests.map((request) => ({
+      ...request,
+      creator: request.creator.name,
+      moderator: request?.moderator?.name,
+      createdAt: request.createdAt.toLocaleDateString(),
+      dateStart: request.dateStart.toLocaleDateString(),
+      dateEnd: request.dateEnd.toLocaleDateString(),
+    }));
+
+    setExportTableDownloading(true);
+    const worksheet = XLSX.utils.json_to_sheet(transformedFilteredRequests);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Filtered Requests");
+    XLSX.writeFile(workbook, "filtered_requests.xlsx");
+
+    setExportTableDownloading(false);
+  };
+
   return (
     <>
       <div>
@@ -179,11 +206,13 @@ const RequestCollapseList = () => {
             onDateFilterChange={setDateFilter}
           />
           <ControlMenu
-            onExportClick={exportFilteredRequests}
+            onExportFilesClick={exportFilteredRequests}
+            onExportTableClick={exportRequestsTable}
             onCreateCallback={(request: Request) =>
               setRequests([...requests, request])
             }
-            exportDownloading={exportDownloading}
+            exportFilesDownloading={exportFilesDownloading}
+            exportTableDownloading={exportTableDownloading}
           />
         </div>
 

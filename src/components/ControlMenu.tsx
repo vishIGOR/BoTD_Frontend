@@ -1,18 +1,26 @@
 import { Button } from "antd";
-import { FileExcelOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+  FileExcelOutlined,
+  FilePdfOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
 import CreateRequestModal from "./CreateRequestForm";
 import { useState } from "react";
 import { Request } from "../models/Request";
 import { useUserProfileContext } from "../context/UserProfileContext";
 
 const ControlMenu = ({
-  onExportClick,
+  onExportFilesClick,
+  onExportTableClick,
   onCreateCallback,
-  exportDownloading,
+  exportFilesDownloading,
+  exportTableDownloading,
 }: {
-  onExportClick: () => void;
+  onExportFilesClick: () => void;
+  onExportTableClick: () => void;
   onCreateCallback: (request: Request) => void;
-  exportDownloading: boolean;
+  exportFilesDownloading: boolean;
+  exportTableDownloading: boolean;
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { userProfile } = useUserProfileContext();
@@ -47,15 +55,28 @@ const ControlMenu = ({
           Создать заявку
         </Button>
         {userProfile.role === "DEAN" && (
-          <Button
-            type="primary"
-            icon={<FileExcelOutlined />}
-            onClick={onExportClick}
-            size="large"
-            loading={exportDownloading}
-          >
-            Экспорт всех заявок
-          </Button>
+          <div style={{ width: "100%", display: "flex", flexDirection: "row", gap: 10 }}>
+            <Button
+              type="primary"
+              icon={<FilePdfOutlined />}
+              onClick={onExportFilesClick}
+              size="large"
+              loading={exportFilesDownloading}
+              style={{ width: "50%" }}
+            >
+              Экспорт документов
+            </Button>
+            <Button
+              type="primary"
+              icon={<FileExcelOutlined />}
+              onClick={onExportTableClick}
+              size="large"
+              loading={exportTableDownloading}
+              style={{ width: "50%" }}
+            >
+              Экспорт таблицы заявок
+            </Button>
+          </div>
         )}
       </div>
       <CreateRequestModal
