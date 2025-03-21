@@ -100,7 +100,7 @@ export const createRequest = async (data: {
     throw new Error("No token found");
   }
 
-  return authApi.post("/request", data, {
+  return mainApi.post("/requests", data, {
     headers: {
       Authorization: `Bearer ${tokenData.token}`,
     },
@@ -182,6 +182,36 @@ export const getRequests = async (queryParams: {
     });
 };
 
+export const editRequest = async (
+  requestId: string,
+  data: {
+    creatorId: string;
+    dateStart: Date;
+    dateEnd: Date;
+    comment: string;
+    status: Status;
+    reason: Reason;
+    fileInDean: boolean;
+  }
+) => {
+  if (!MAIN_BACKEND_URL) {
+    throw new Error("MAIN_BACKEND_URL is not defined");
+  }
+
+  const tokenData = getTokenData();
+  if (!tokenData) {
+    throw new Error("No token found");
+  }
+
+  return mainApi.put(`/requests/${requestId}`, data, {
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${tokenData.token}`,
+    },
+  });
+};
+
+
 export const getGroups = async (): Promise<Group[]> => {
   if (!MAIN_BACKEND_URL) {
     throw new Error("MAIN_BACKEND_URL is not defined");
@@ -192,7 +222,7 @@ export const getGroups = async (): Promise<Group[]> => {
     throw new Error("No token found");
   }
 
-  return authApi
+  return mainApi
     .get("/groups", {
       headers: {
         Authorization: `Bearer ${tokenData.token}`,
@@ -245,7 +275,7 @@ export const createGroup = async (data: {
     throw new Error("No token found");
   }
 
-  return authApi.post("/groups", data, {
+  return mainApi.post("/groups", data, {
     headers: {
       Authorization: `Bearer ${tokenData.token}`,
     },
@@ -267,7 +297,7 @@ export const uploadRequestFiles = async (requestId: string, files: File[]) => {
     formData.append("file", file);
   });
 
-  return mainApi.post(`/v1/requests/upload/${requestId}`, formData, {
+  return mainApi.post(`/requests/upload/${requestId}`, formData, {
     headers: {
       "Content-Type": "multipart/form-data",
       Authorization: `Bearer ${tokenData.token}`,
@@ -292,7 +322,7 @@ export const exportRequests = async (queryParams: {
     throw new Error("No token found");
   }
 
-  return mainApi.get("/v1/requests/export", {
+  return mainApi.get("/requests/export", {
     headers: {
       Authorization: `Bearer ${tokenData.token}`,
     },
@@ -318,7 +348,7 @@ export const getUserRequests = async (
     throw new Error("No token found");
   }
 
-  return mainApi.get(`/v1/requests/users/${userId}`, {
+  return mainApi.get(`/requests/users/${userId}`, {
     headers: {
       Authorization: `Bearer ${tokenData.token}`,
     },
@@ -342,41 +372,12 @@ export const exportUserRequests = async (
     throw new Error("No token found");
   }
 
-  return mainApi.get(`/v1/requests/${userId}/export`, {
+  return mainApi.get(`/requests/${userId}/export`, {
     headers: {
       Authorization: `Bearer ${tokenData.token}`,
     },
     params: queryParams,
     responseType: "blob", // To handle binary data (zip file)
-  });
-};
-
-export const updateRequestStatus = async (
-  requestId: string,
-  data: {
-    creatorId: string;
-    dateStart: Date;
-    dateEnd: Date;
-    comment: string;
-    status: Status;
-    reason: Reason;
-    fileInDean: boolean;
-  }
-) => {
-  if (!MAIN_BACKEND_URL) {
-    throw new Error("MAIN_BACKEND_URL is not defined");
-  }
-
-  const tokenData = getTokenData();
-  if (!tokenData) {
-    throw new Error("No token found");
-  }
-
-  return mainApi.put(`/v1/requests/${requestId}`, data, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${tokenData.token}`,
-    },
   });
 };
 
@@ -394,7 +395,7 @@ export const getUsers = async (queryParams: {
     throw new Error("No token found");
   }
 
-  return mainApi.get("/v1/users", {
+  return mainApi.get("/users", {
     headers: {
       Authorization: `Bearer ${tokenData.token}`,
     },
@@ -413,7 +414,7 @@ export const updateUserRole = async (userId: string, role: Role) => {
   }
 
   return mainApi.patch(
-    `/v1/users/${userId}`,
+    `/users/${userId}`,
     { role },
     {
       headers: {

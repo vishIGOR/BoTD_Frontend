@@ -1,20 +1,25 @@
+import { Button, DatePicker, Form, Input, message, Modal, Select } from "antd";
 import { useState } from "react";
-import { Form, Input, Button, DatePicker, Upload, Modal, message } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
+import { useUserProfileContext } from "../context/UserProfileContext";
 import { createRequest } from "../utils/requests";
 
-interface CreateRequestModalProps {
-  isModalOpen: boolean;
-  setIsModalOpen: (value: boolean) => void;
-}
+const { RangePicker } = DatePicker;
+const { Option } = Select;
 
 const CreateRequestModal = ({
   isModalOpen,
   setIsModalOpen,
-}: CreateRequestModalProps) => {
+  onCreateCallback,
+}: {
+  isModalOpen: boolean;
+  setIsModalOpen: (value: boolean) => void;
+  onCreateCallback: (request: Request) => void;
+}) => {
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [form] = Form.useForm();
+
+  const { userProfile } = useUserProfileContext();
 
   const handleOk = async () => {
     try {
@@ -22,10 +27,14 @@ const CreateRequestModal = ({
       const values = await form.validateFields();
 
       await createRequest({
+        comment: values.comment,
         reason: values.reason,
-        date: values.date.format("YYYY-MM-DD"),
-        status: "На проверке",
-        file: file || undefined,
+        dateStart: values.period?.[0].toDate(),
+        dateEnd: values.period?.[1].toDate(),
+        status: "PENDING",
+        fileInDean: false,
+        fileUrl: [],
+        userId: userProfile.id,
       });
 
       message.success("Заявка успешно создана!");
@@ -41,7 +50,6 @@ const CreateRequestModal = ({
 
   const handleCancel = () => {
     setIsModalOpen(false);
-    form.resetFields();
     setFile(null);
   };
 
@@ -78,19 +86,37 @@ const CreateRequestModal = ({
       <Form form={form} layout="vertical">
         <Form.Item
           name="reason"
-          label="Причина пропуска"
-          rules={[{ required: true, message: "Введите причину!" }]}
+          label="Причина"
+          rules={[{ required: true, message: "Выберите причину" }]}
+        >
+          <Select style={{ width: "100%" }} size="large">
+            <Option value="FAMILY">Семейные обстоятельства</Option>
+            <Option value="ILLNESS">Болезнь</Option>
+            <Option value="STUDENT_ACTIVITY">Студенческая активность</Option>
+          </Select>
+        </Form.Item>
+
+        <Form.Item
+          name="comment"
+          label="Описание"
+          rules={[{ required: true, message: "Опишите причину" }]}
         >
           <Input.TextArea size="large" />
         </Form.Item>
+
         <Form.Item
-          name="date"
+          name="period"
           label="Дата пропуска"
-          rules={[{ required: true, message: "Выберите дату!" }]}
+          rules={[{ required: true, message: "Выберите дату" }]}
         >
-          <DatePicker size="large" style={{ width: "100%" }} />
+          <RangePicker
+            allowEmpty={[false, false]}
+            placeholder={["Начало пропуска", "Конец пропуска"]}
+            style={{ width: "100%" }}
+            size="large"
+          />
         </Form.Item>
-        <Form.Item label="Прикрепить документ" name="document">
+        {/* <Form.Item label="Прикрепить документ" name="document">
           <Upload
             beforeUpload={() => false}
             onChange={handleFileChange}
@@ -100,7 +126,7 @@ const CreateRequestModal = ({
               Загрузить файл
             </Button>
           </Upload>
-        </Form.Item>
+        </Form.Item> */}
       </Form>
     </Modal>
   );

@@ -3,12 +3,13 @@ import { FileExcelOutlined, PlusOutlined } from "@ant-design/icons";
 import CreateRequestModal from "./CreateRequestForm";
 import { useState } from "react";
 
-interface ControlMenuProps {
+const ControlMenu = ({
+  onExportClick,
+  onCreateCallback,
+}: {
   onExportClick: () => void;
-  onCreateClick: () => void;
-}
-
-const ControlMenu = ({ onExportClick, onCreateClick }: ControlMenuProps) => {
+  onCreateCallback: (request: Request) => void;
+}) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
@@ -29,7 +30,6 @@ const ControlMenu = ({ onExportClick, onCreateClick }: ControlMenuProps) => {
           icon={<PlusOutlined />}
           onClick={() => {
             setIsModalOpen(true);
-            onCreateClick();
           }}
           size="large"
         >
@@ -47,6 +47,7 @@ const ControlMenu = ({ onExportClick, onCreateClick }: ControlMenuProps) => {
       <CreateRequestModal
         isModalOpen={isModalOpen}
         setIsModalOpen={setIsModalOpen}
+        onCreateCallback={onCreateCallback}
       />
     </>
   );

@@ -14,9 +14,9 @@ import axios from "axios";
 import { message } from "antd";
 
 interface UserProfileContextType {
-  userProfile: UserProfile | null;
+  userProfile: UserProfile;
   isLoading: boolean;
-  getCurrentRole: () => string | null;
+  getCurrentRole: () => Role;
 }
 
 export const UserProfileContext = createContext<UserProfileContextType | null>(
@@ -59,7 +59,12 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
     fetchUserProfile();
   }, []);
 
-  const getCurrentRole = (): Role | null => {
+  if (!userProfile) {
+    navigate("/login");
+    return null;
+  }
+
+  const getCurrentRole = (): Role => {
     return userProfile?.role || null;
   };
 
