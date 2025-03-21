@@ -4,7 +4,7 @@ export interface Request {
   id: string;
   creator: UserProfile;
   moderator: UserProfile | null;
-  groupNumber: string | null;
+  groupNumber: number | null;
 
   reason: Reason;
   status: Status;

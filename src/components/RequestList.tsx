@@ -33,7 +33,7 @@ const RequestCollapseList = () => {
     null
   );
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [groupFilter, setGroupFilter] = useState<string | null>(null);
+  const [groupFilter, setGroupFilter] = useState<number | null>(null);
   const [searchName, setSearchName] = useState<string>("");
   const [dateFilter, setDateFilter] = useState<
     [Date | null, Date | null] | null
@@ -211,6 +211,11 @@ const RequestCollapseList = () => {
                 }
               >
                 <>
+                  {req.groupNumber && (
+                    <p>
+                      <b>Группа:</b> {req.groupNumber}
+                    </p>
+                  )}
                   <p>
                     <b>Описание:</b> {req.comment}
                   </p>
@@ -259,25 +264,29 @@ const RequestCollapseList = () => {
                   {(userProfile.role === "ADMIN" ||
                     userProfile.role === "DEAN") && (
                     <>
-                      <Button
-                        icon={<CheckCircleOutlined />}
-                        type="primary"
-                        onClick={() => confirmRequest(req.id)}
-                        style={{ marginRight: 8, marginBottom: 8 }}
-                        size="large"
-                      >
-                        Одобрить
-                      </Button>
-                      <Button
-                        icon={<CloseCircleOutlined />}
-                        type="default"
-                        danger
-                        onClick={() => rejectRequest(req.id)}
-                        style={{ marginRight: 8, marginBottom: 8 }}
-                        size="large"
-                      >
-                        Отклонить
-                      </Button>
+                      {req.status !== "APPROVED" && (
+                        <Button
+                          icon={<CheckCircleOutlined />}
+                          type="primary"
+                          onClick={() => confirmRequest(req.id)}
+                          style={{ marginRight: 8, marginBottom: 8 }}
+                          size="large"
+                        >
+                          Одобрить
+                        </Button>
+                      )}
+                      {req.status !== "DECLINED" && (
+                        <Button
+                          icon={<CloseCircleOutlined />}
+                          type="default"
+                          danger
+                          onClick={() => rejectRequest(req.id)}
+                          style={{ marginRight: 8, marginBottom: 8 }}
+                          size="large"
+                        >
+                          Отклонить
+                        </Button>
+                      )}
                     </>
                   )}
                 </>

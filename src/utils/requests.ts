@@ -130,7 +130,7 @@ export const createRequest = async (data: {
           comment: string;
           fileInDean: boolean;
           files: { id: string }[];
-          groupNumber: string | null;
+          groupNumber: number | null;
         };
       }) => {
         const request = response.data;
@@ -205,7 +205,7 @@ export const getRequests = async (queryParams: {
           comment: string;
           fileInDean: boolean;
           files: { id: string }[];
-          groupNumber: string | null;
+          groupNumber: number | null;
         }[];
       }) => {
         return response?.data?.map((request) => {
@@ -343,7 +343,7 @@ export const getUserRequests = async (
           comment: string;
           fileInDean: boolean;
           files: { id: string }[];
-          groupNumber: string | null;
+          groupNumber: number | null;
         }[];
       }) => {
         return response?.data?.map((request) => {

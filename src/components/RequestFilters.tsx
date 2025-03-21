@@ -14,7 +14,7 @@ export const RequestFilters = memo(function RequestFilters({
   onDateFilterChange,
 }: {
   onStatusFilterChange: (value: Status | null) => void;
-  onGroupFilterChange: (value: string | null) => void;
+  onGroupFilterChange: (value: number | null) => void;
   onSearchNameChange: (value: string) => void;
   onDateFilterChange: (dates: [Date | null, Date | null] | null) => void;
 }) {
@@ -73,7 +73,7 @@ export const RequestFilters = memo(function RequestFilters({
             loading={loading}
           >
             {groups.map((group) => (
-              <Option key={group.number} value={group.number.toString()}>
+              <Option key={group.number} value={group.number}>
                 {group.number}
               </Option>
             ))}
