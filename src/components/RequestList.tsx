@@ -6,7 +6,6 @@ import {
 } from "@ant-design/icons";
 import { Button, Collapse, message, Pagination, Tag } from "antd";
 import { useEffect, useState } from "react";
-import * as XLSX from "xlsx";
 import { useUserProfileContext } from "../context/UserProfileContext";
 import { reasonToString, Request, statusToString } from "../models/Request";
 import {
@@ -136,16 +135,6 @@ const RequestCollapseList = () => {
 
   // Экспорт
   const exportFilteredRequests = async () => {
-    // if (filteredRequests.length === 0) {
-    //   message.warning("Нет данных для экспорта!");
-    //   return;
-    // }
-    // const worksheet = XLSX.utils.json_to_sheet(filteredRequests);
-    // const workbook = XLSX.utils.book_new();
-    // XLSX.utils.book_append_sheet(workbook, worksheet, "Filtered Requests");
-    // XLSX.writeFile(workbook, "filtered_requests.xlsx");
-    // message.success("Фильтрованный список пропусков экспортирован!");
-
     setExportDownloading(true);
     try {
 
@@ -231,16 +220,6 @@ const RequestCollapseList = () => {
                 <p>
                   <b>Документы в деканате:</b> {req.fileInDean ? "Да" : "Нет"}
                 </p>
-                {/* <p>
-                  <b>Документы:</b>{" "} */}
-                {/* {req.document ? (
-                <a href={`#${req.document}`} download>
-                  {req.document}
-                </a>
-              ) : (
-                "Нет"
-              )} */}
-                {/* </p> */}
                 {req.moderator && (
                   <p>
                     <b>Вердикт пользователя:</b> {req.moderator.name}
