@@ -1,17 +1,25 @@
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
-  DeleteOutlined,
   EditOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import { Button, Collapse, message, Pagination, Tag } from "antd";
 import { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
+import { useUserProfileContext } from "../context/UserProfileContext";
 import { reasonToString, Request, statusToString } from "../models/Request";
-import { editRequest, getRequests } from "../utils/requests";
+import {
+  editRequest,
+  exportRequests,
+  exportUserRequests,
+  getRequests,
+  getUserRequests,
+} from "../utils/requests";
 import ControlMenu from "./ControlMenu";
-import { RequestFilters } from "./RequestFilters";
 import EditRequestForm from "./EditRequestForm";
+import { RequestFilters } from "./RequestFilters";
+import UploadDocumentsForm from "./UploadDocumentsForm";
 
 const { Panel } = Collapse;
 const PAGE_SIZE = 5;
@@ -20,6 +28,10 @@ const RequestCollapseList = () => {
   const [requests, setRequests] = useState<Request[]>([]);
   const [isEditingModalOpen, setIsEditingModalOpen] = useState(false);
   const [editingRequest, setEditingRequest] = useState<Request | null>(null);
+  const [isUploadingFormOpem, setIsUploadingFormOpen] = useState(false);
+  const [uploadingRequestId, setUploadingRequestId] = useState<string | null>(
+    null
+  );
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [groupFilter, setGroupFilter] = useState<string | null>(null);
   const [searchName, setSearchName] = useState<string>("");
@@ -27,13 +39,22 @@ const RequestCollapseList = () => {
     [Date | null, Date | null] | null
   >(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [exportDownloading, setExportDownloading] = useState(false);
+
+  const { userProfile } = useUserProfileContext();
 
   useEffect(() => {
     const fetchRequests = async () => {
       try {
-        getRequests({}).then((response) => {
-          setRequests(response);
-        });
+        if (userProfile.role === "STUDENT") {
+          getUserRequests(userProfile.id, {}).then((response) => {
+            setRequests(response);
+          });
+        } else {
+          getRequests({}).then((response) => {
+            setRequests(response);
+          });
+        }
       } catch {
         message.error("Ошибка при получении запросов");
       }
@@ -45,7 +66,7 @@ const RequestCollapseList = () => {
   // Фильтрация
   const filteredRequests = requests
     .filter((req) => !statusFilter || req.status === statusFilter)
-    // .filter((req) => !groupFilter || req.groupNumber === groupFilter)
+    .filter((req) => !groupFilter || req.groupNumber === groupFilter)
     .filter(
       (req) =>
         !searchName ||
@@ -102,28 +123,58 @@ const RequestCollapseList = () => {
     try {
       editRequest(id, {
         ...request,
-        status: "DECLINDE",
+        status: "DECLINED",
         creatorId: request.creator.id,
       });
     } catch {
       message.error("Не удалось отклонить заявку");
       return;
     }
-    editRequestLocally(id, { status: "DECLINDE" });
+    editRequestLocally(id, { status: "DECLINED" });
     message.success("Заявка отклонена");
   };
 
   // Экспорт
-  const exportFilteredRequests = () => {
-    if (filteredRequests.length === 0) {
-      message.warning("Нет данных для экспорта!");
-      return;
+  const exportFilteredRequests = async () => {
+    // if (filteredRequests.length === 0) {
+    //   message.warning("Нет данных для экспорта!");
+    //   return;
+    // }
+    // const worksheet = XLSX.utils.json_to_sheet(filteredRequests);
+    // const workbook = XLSX.utils.book_new();
+    // XLSX.utils.book_append_sheet(workbook, worksheet, "Filtered Requests");
+    // XLSX.writeFile(workbook, "filtered_requests.xlsx");
+    // message.success("Фильтрованный список пропусков экспортирован!");
+
+    setExportDownloading(true);
+    try {
+
+      let file: Blob|null = null;
+      if (userProfile.role === "STUDENT") {
+        file = await exportUserRequests(userProfile.id, {});
+      } else {
+        file = await exportRequests({});
+      }
+      
+      console.log("file", file);
+      const url = URL.createObjectURL(file);
+
+      // Create a hidden anchor element
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "Документы_заявок";
+      document.body.appendChild(link);
+
+      link.click();
+
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch {
+      message.error("Произошла ошибка при экспорте");
     }
-    const worksheet = XLSX.utils.json_to_sheet(filteredRequests);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Filtered Requests");
-    XLSX.writeFile(workbook, "filtered_requests.xlsx");
-    message.success("Фильтрованный список пропусков экспортирован!");
+    finally{
+      setExportDownloading(false);
+    }
   };
 
   return (
@@ -139,7 +190,10 @@ const RequestCollapseList = () => {
           />
           <ControlMenu
             onExportClick={exportFilteredRequests}
-            onCreateCallback={() => console.log("Заявка создана")}
+            onCreateCallback={(request: Request) =>
+              setRequests([...requests, request])
+            }
+            exportDownloading={exportDownloading}
           />
         </div>
 
@@ -154,7 +208,7 @@ const RequestCollapseList = () => {
                   color={
                     req.status === "APPROVED"
                       ? "green"
-                      : req.status === "DECLINDE"
+                      : req.status === "DECLINED"
                       ? "red"
                       : "orange"
                   }
@@ -177,16 +231,16 @@ const RequestCollapseList = () => {
                 <p>
                   <b>Документы в деканате:</b> {req.fileInDean ? "Да" : "Нет"}
                 </p>
-                <p>
-                  <b>Документ:</b>{" "}
-                  {/* {req.document ? (
+                {/* <p>
+                  <b>Документы:</b>{" "} */}
+                {/* {req.document ? (
                 <a href={`#${req.document}`} download>
                   {req.document}
                 </a>
               ) : (
                 "Нет"
               )} */}
-                </p>
+                {/* </p> */}
                 {req.moderator && (
                   <p>
                     <b>Вердикт пользователя:</b> {req.moderator.name}
@@ -204,27 +258,45 @@ const RequestCollapseList = () => {
                   style={{ marginRight: 8, marginBottom: 8 }}
                   size="large"
                 >
-                  Редактировать
+                  Редактировать общие данные
                 </Button>
                 <Button
-                  icon={<CheckCircleOutlined />}
-                  type="primary"
-                  onClick={() => confirmRequest(req.id)}
+                  icon={<UploadOutlined />}
+                  onClick={async () => {
+                    setUploadingRequestId(req.id);
+                    setTimeout(() => {
+                      setIsUploadingFormOpen(true);
+                    }, 0);
+                  }}
                   style={{ marginRight: 8, marginBottom: 8 }}
                   size="large"
                 >
-                  Одобрить
+                  Прикрепить документы
                 </Button>
-                <Button
-                  icon={<CloseCircleOutlined />}
-                  type="default"
-                  danger
-                  onClick={() => rejectRequest(req.id)}
-                  style={{ marginRight: 8, marginBottom: 8 }}
-                  size="large"
-                >
-                  Отклонить
-                </Button>
+                {(userProfile.role === "ADMIN" ||
+                  userProfile.role === "DEAN") && (
+                  <>
+                    <Button
+                      icon={<CheckCircleOutlined />}
+                      type="primary"
+                      onClick={() => confirmRequest(req.id)}
+                      style={{ marginRight: 8, marginBottom: 8 }}
+                      size="large"
+                    >
+                      Одобрить
+                    </Button>
+                    <Button
+                      icon={<CloseCircleOutlined />}
+                      type="default"
+                      danger
+                      onClick={() => rejectRequest(req.id)}
+                      style={{ marginRight: 8, marginBottom: 8 }}
+                      size="large"
+                    >
+                      Отклонить
+                    </Button>
+                  </>
+                )}
               </>
             </Panel>
           ))}
@@ -252,6 +324,17 @@ const RequestCollapseList = () => {
                 oldRequest.id === request.id ? request : oldRequest
               )
             );
+          }}
+        />
+      )}
+      {uploadingRequestId && (
+        <UploadDocumentsForm
+          isModalOpen={isUploadingFormOpem}
+          setIsModalOpen={setIsUploadingFormOpen}
+          requestId={uploadingRequestId}
+          onUploadCallback={() => {
+            setUploadingRequestId(null);
+            setIsUploadingFormOpen(false);
           }}
         />
       )}

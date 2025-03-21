@@ -17,7 +17,11 @@ function Main() {
         leftButtons: (
           <>
             <NavbarLinkButton path="/">Заявки</NavbarLinkButton>
-            <NavbarLinkButton path="/users">Пользователи и группы</NavbarLinkButton>
+            {(userProfile.role === "ADMIN" || userProfile.role === "DEAN") && (
+              <NavbarLinkButton path="/users">
+                Пользователи и группы
+              </NavbarLinkButton>
+            )}
           </>
         ),
         rightButtons: (

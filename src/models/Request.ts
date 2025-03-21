@@ -4,6 +4,7 @@ export interface Request {
   id: string;
   creator: UserProfile;
   moderator: UserProfile | null;
+  groupNumber: string | null;
 
   reason: Reason;
   status: Status;
@@ -32,7 +33,7 @@ export function reasonToString(reason: Reason): string {
   }
 }
 
-export type Status = "PENDING" | "APPROVED" | "DECLINDE";
+export type Status = "PENDING" | "APPROVED" | "DECLINED";
 
 export function statusToString(status: Status): string {
   switch (status) {
@@ -40,7 +41,7 @@ export function statusToString(status: Status): string {
       return "На проверке";
     case "APPROVED":
       return "Подтверждено";
-    case "DECLINDE":
+    case "DECLINED":
       return "Отклонено";
     default:
       return "Неизвестно";

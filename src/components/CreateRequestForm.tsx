@@ -2,6 +2,7 @@ import { Button, DatePicker, Form, Input, message, Modal, Select } from "antd";
 import { useState } from "react";
 import { useUserProfileContext } from "../context/UserProfileContext";
 import { createRequest } from "../utils/requests";
+import { Request } from "../models/Request";
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -16,7 +17,6 @@ const CreateRequestModal = ({
   onCreateCallback: (request: Request) => void;
 }) => {
   const [loading, setLoading] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
   const [form] = Form.useForm();
 
   const { userProfile } = useUserProfileContext();
@@ -26,7 +26,7 @@ const CreateRequestModal = ({
       setLoading(true);
       const values = await form.validateFields();
 
-      await createRequest({
+      const createdRequest = await createRequest({
         comment: values.comment,
         reason: values.reason,
         dateStart: values.period?.[0].toDate(),
@@ -38,9 +38,9 @@ const CreateRequestModal = ({
       });
 
       message.success("Заявка успешно создана!");
+      onCreateCallback(createdRequest);
       setIsModalOpen(false);
       form.resetFields();
-      setFile(null);
     } catch {
       message.error("Не удалось создать заявку.");
     } finally {
@@ -50,16 +50,6 @@ const CreateRequestModal = ({
 
   const handleCancel = () => {
     setIsModalOpen(false);
-    setFile(null);
-  };
-
-  const handleFileChange = (info: any) => {
-    if (info.file.status === "done") {
-      setFile(info.file.originFileObj);
-      message.success(`${info.file.name} загружен.`);
-    } else if (info.file.status === "error") {
-      message.error(`${info.file.name} не удалось загрузить.`);
-    }
   };
 
   return (
@@ -116,17 +106,6 @@ const CreateRequestModal = ({
             size="large"
           />
         </Form.Item>
-        {/* <Form.Item label="Прикрепить документ" name="document">
-          <Upload
-            beforeUpload={() => false}
-            onChange={handleFileChange}
-            maxCount={1}
-          >
-            <Button icon={<UploadOutlined />} size="large">
-              Загрузить файл
-            </Button>
-          </Upload>
-        </Form.Item> */}
       </Form>
     </Modal>
   );

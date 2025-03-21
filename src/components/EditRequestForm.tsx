@@ -3,6 +3,7 @@ import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { Request } from "../models/Request"; // Adjust imports based on your models
 import { editRequest } from "../utils/requests";
+import { useUserProfileContext } from "../context/UserProfileContext";
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -20,6 +21,8 @@ const EditRequestForm = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
+
+  const { userProfile } = useUserProfileContext();
 
   useEffect(() => {
     if (isModalOpen && request) {
@@ -143,10 +146,14 @@ const EditRequestForm = ({
           label="Статус"
           rules={[{ required: true, message: "Выберите статус" }]}
         >
-          <Select style={{ width: "100%" }} size="large">
+          <Select
+            disabled={userProfile.role === "STUDENT"}
+            style={{ width: "100%" }}
+            size="large"
+          >
             <Option value="PENDING">На рассмотрении</Option>
             <Option value="APPROVED">Одобрено</Option>
-            <Option value="DECLINDE">Отклонено</Option>
+            <Option value="DECLINED">Отклонено</Option>
           </Select>
         </Form.Item>
 
@@ -155,7 +162,11 @@ const EditRequestForm = ({
           label="Документы в деканате"
           rules={[{ required: true, message: "Отметьте статус документов" }]}
         >
-          <Select style={{ width: "100%" }} size="large">
+          <Select
+            disabled={userProfile.role === "STUDENT"}
+            style={{ width: "100%" }}
+            size="large"
+          >
             <Option value={true}>Да</Option>
             <Option value={false}>Нет</Option>
           </Select>
